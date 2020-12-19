@@ -1,7 +1,7 @@
-#define GLFW_INCLUDE_NONE
-
 #include <GLFW/glfw3.h>
 #include <cstdlib>
+
+#include <loader.h>
 
 void key_callback(GLFWwindow *window, int key, int, int action, int)
 {
@@ -39,6 +39,8 @@ int main()
 		glfwTerminate();
 		return EXIT_FAILURE;
 	}
+
+	sponza::LoadMesh("/home/daniel/Workspace/Sponza/data/sponza/sponza.obj");
 
 	glfwSetKeyCallback(window, key_callback);
 
