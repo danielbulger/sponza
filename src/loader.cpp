@@ -63,26 +63,44 @@ namespace sponza
 		}
 	}
 
+	std::vector<int> SplitFace(std::string &str)
+	{
+		std::vector<int> result;
+
+		std::istringstream iss(str);
+		std::string token;
+
+		while (std::getline(iss, token, '/'))
+		{
+			result.push_back(std::stoi(token));
+		}
+
+		return result;
+	}
+
 	void GenerateVertices(
 		std::vector<Vertex> &vertices,
 		const std::vector<glm::vec3> &positions,
 		const std::vector<glm::vec3> &normals,
-		const std::vector<glm::vec2> &texPositions,
+		const std::vector<glm::vec2> &tex,
 		std::istringstream &stream
 	)
 	{
-
-		Vertex vertex;
-
 		std::string data;
 
-		stream >> data;
+		for(int i = 0; stream.good(); ++i)
+		{
+			Vertex vertex = {};
+			stream >> data;
+			std::vector<int> face = SplitFace(data);
 
-		// First token is the positional data.
+			// -1 as obj files index start at 1 not 0.
+			vertex.position = positions[face[0] - 1];
+			vertex.tex = tex[face[1] - 1];
+			vertex.normal = normals[face[2] - 1];
 
-		// Second token is the tex-coord data.
-
-		// Third token is the normal data.
+			vertices.push_back(vertex);
+		}
 	}
 
 	std::unique_ptr<std::vector<Mesh>> LoadMesh(const char *file)
