@@ -88,7 +88,7 @@ namespace sponza
 	{
 		std::string data;
 
-		for(int i = 0; stream.good(); ++i)
+		while(stream.good())
 		{
 			Vertex vertex = {};
 			stream >> data;
