@@ -6,9 +6,28 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <set>
 
 namespace sponza
 {
+
+	using VertexPair = std::pair<glm::vec3, uint32_t>;
+
+	struct VertexCompare
+	{
+		bool operator()(const VertexPair &p1, const VertexPair &p2) const
+		{
+			for (int i = 0; i < glm::vec3::length(); ++i)
+			{
+				if (fabsf(p1.first[i] - p2.first[i]) > FLT_EPSILON)
+				{
+					return p1.first[i] < p2.first[i];
+				}
+			}
+
+			return false;
+		}
+	};
 
 	std::string GetDirectory(const char *file)
 	{
@@ -88,7 +107,7 @@ namespace sponza
 	{
 		std::string data;
 
-		while(stream.good())
+		while (stream.good())
 		{
 			Vertex vertex = {};
 			stream >> data;
@@ -100,6 +119,30 @@ namespace sponza
 			vertex.normal = normals[face[2] - 1];
 
 			vertices.push_back(vertex);
+		}
+	}
+
+	void GenerateIndices(
+		std::vector<uint32_t> &indices,
+		const std::vector<Vertex> &vertices
+	)
+	{
+		std::set<VertexPair, VertexCompare> found_index;
+		uint32_t current_index = 0;
+
+		for (const auto &vertex : vertices)
+		{
+			auto it = found_index.find(std::make_pair(vertex.position, 0));
+
+			if (it != found_index.end())
+			{
+				indices.push_back(it->second);
+			}
+			else
+			{
+				found_index.insert(std::make_pair(vertex.position, current_index));
+				indices.push_back(current_index++);
+			}
 		}
 	}
 
@@ -150,6 +193,10 @@ namespace sponza
 				}
 				else
 				{
+					// Now there's nothing left to do, we precalculate
+					// the indices list.
+					GenerateIndices(mesh.indices, mesh.vertices);
+
 					meshes->push_back(mesh);
 
 					mesh = {};
