@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <vector>
-#include <material.h>
 #include <mesh.h>
 #include <map>
 

@@ -91,7 +91,7 @@ namespace sponza
 
 		while (std::getline(iss, token, '/'))
 		{
-			result.push_back(std::stoi(token));
+			result.emplace_back(std::stoi(token));
 		}
 
 		return result;
@@ -118,7 +118,7 @@ namespace sponza
 			vertex.tex = tex[face[1] - 1];
 			vertex.normal = normals[face[2] - 1];
 
-			vertices.push_back(vertex);
+			vertices.emplace_back(vertex);
 		}
 	}
 
@@ -136,12 +136,12 @@ namespace sponza
 
 			if (it != found_index.end())
 			{
-				indices.push_back(it->second);
+				indices.emplace_back(it->second);
 			}
 			else
 			{
 				found_index.insert(std::make_pair(vertex.position, current_index));
-				indices.push_back(current_index++);
+				indices.emplace_back(current_index++);
 			}
 		}
 	}
@@ -197,7 +197,7 @@ namespace sponza
 					// the indices list.
 					GenerateIndices(mesh.indices, mesh.vertices);
 
-					meshes->push_back(mesh);
+					meshes->emplace_back(mesh);
 
 					mesh = {};
 				}
@@ -208,19 +208,19 @@ namespace sponza
 			{
 				glm::vec3 position;
 				ParseVec3(stream, position);
-				positions.push_back(position);
+				positions.emplace_back(position);
 			}
 			else if (property == "vt")
 			{
 				glm::vec2 vtex;
 				ParseVec2(stream, vtex);
-				tex.push_back(vtex);
+				tex.emplace_back(vtex);
 			}
 			else if (property == "vn")
 			{
 				glm::vec3 normal;
 				ParseVec3(stream, normal);
-				normals.push_back(normal);
+				normals.emplace_back(normal);
 			}
 			else if (property == "f")
 			{
@@ -248,7 +248,7 @@ namespace sponza
 
 				if (material != materials->end())
 				{
-					mesh.material = material->second;
+					mesh.material = &material->second;
 				}
 			}
 		}
