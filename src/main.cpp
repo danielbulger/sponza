@@ -11,8 +11,12 @@ void key_callback(GLFWwindow *window, int key, int, int action, int)
 	}
 }
 
-int main()
+int main(int argc, char *argv[])
 {
+
+	if(argc != 2) {
+		return 1;
+	};
 
 	if (!glfwInit())
 	{
@@ -40,7 +44,7 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	sponza::LoadMesh("/home/daniel/Workspace/Sponza/data/sponza/sponza.obj");
+	sponza::LoadMesh(argv[1]);
 
 	glfwSetKeyCallback(window, key_callback);
 
