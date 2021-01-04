@@ -6,12 +6,17 @@ set(TARGET_NAME Sponza)
 
 find_package(OpenGL REQUIRED)
 
-add_executable(${TARGET_NAME} lib/glad/src/glad.c
+add_executable(${TARGET_NAME}
+	lib/glad/src/glad.c
+	lib/stb/stb_image.h
 	src/main.cpp
 	src/mesh.h
 	src/loader.h
 	src/loader.cpp
-	src/mesh.cpp src/camera.h src/camera.cpp src/shader.h)
+	src/mesh.cpp
+	src/camera.h
+	src/camera.cpp
+	src/shader.h)
 
 target_include_directories(${TARGET_NAME} PRIVATE
 	src/
@@ -19,6 +24,7 @@ target_include_directories(${TARGET_NAME} PRIVATE
 	${GLFW3_INCLUDE_DIR}
 	${GLM_INCLUDE_DIR}
 	lib/glad/include/
+	lib/stb/
 )
 
 target_compile_options(${TARGET_NAME} PUBLIC -Wall -Wextra -Werror -Wshadow -Wdouble-promotion -Wno-dev)

@@ -8,26 +8,22 @@
 #include <cstring>
 #include <set>
 
+#pragma GCC diagnostic push
+
+#pragma GCC diagnostic ignored "-Wdouble-promotion"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image.h>
+
+#pragma GCC diagnostic pop
+
+#include <glad/glad.h>
+
 namespace sponza
 {
-
-	using VertexPair = std::pair<glm::vec3, uint32_t>;
-
-	struct VertexCompare
-	{
-		bool operator()(const VertexPair &p1, const VertexPair &p2) const
-		{
-			for (int i = 0; i < glm::vec3::length(); ++i)
-			{
-				if (fabsf(p1.first[i] - p2.first[i]) > FLT_EPSILON)
-				{
-					return p1.first[i] < p2.first[i];
-				}
-			}
-
-			return false;
-		}
-	};
 
 	std::string GetDirectory(const char *file)
 	{
@@ -50,7 +46,7 @@ namespace sponza
 
 		stream >> temp;
 
-		value = std::stof(temp);
+		value = static_cast<float>(std::stod(temp));
 	}
 
 	void ParseString(std::istream &stream, std::string &value)
@@ -66,7 +62,7 @@ namespace sponza
 		{
 			stream >> temp;
 
-			vector[i] = std::stof(temp);
+			vector[i] = static_cast<float>(std::stod(temp));
 		}
 	}
 
@@ -78,13 +74,13 @@ namespace sponza
 		{
 			stream >> temp;
 
-			vector[i] = std::stof(temp);
+			vector[i] = static_cast<float>(std::stod(temp));
 		}
 	}
 
-	std::vector<int> SplitFace(std::string &str)
+	std::vector<int32_t> SplitFace(std::string &str)
 	{
-		std::vector<int> result;
+		std::vector<int32_t> result;
 
 		std::istringstream iss(str);
 		std::string token;
@@ -111,7 +107,7 @@ namespace sponza
 		{
 			Vertex vertex = {};
 			stream >> data;
-			std::vector<int> face = SplitFace(data);
+			std::vector<int32_t> face = SplitFace(data);
 
 			// -1 as obj files index start at 1 not 0.
 			vertex.position = positions[face[0] - 1];
@@ -122,33 +118,9 @@ namespace sponza
 		}
 	}
 
-	void GenerateIndices(
-		std::vector<uint32_t> &indices,
-		const std::vector<Vertex> &vertices
-	)
+	std::vector<Mesh> LoadMesh(const char *file)
 	{
-		std::set<VertexPair, VertexCompare> found_index;
-		uint32_t current_index = 0;
-
-		for (const auto &vertex : vertices)
-		{
-			auto it = found_index.find(std::make_pair(vertex.position, 0));
-
-			if (it != found_index.end())
-			{
-				indices.emplace_back(it->second);
-			}
-			else
-			{
-				found_index.insert(std::make_pair(vertex.position, current_index));
-				indices.emplace_back(current_index++);
-			}
-		}
-	}
-
-	std::unique_ptr<std::vector<Mesh>> LoadMesh(const char *file)
-	{
-		auto meshes = std::make_unique<std::vector<Mesh>>();
+		std::vector<Mesh> meshes;
 
 		std::ifstream in(file);
 
@@ -167,7 +139,7 @@ namespace sponza
 		std::string line;
 		std::string property;
 
-		std::unique_ptr<std::map<std::string, Material>> materials;
+		std::map<std::string, std::shared_ptr<Material>> materials;
 
 		Mesh mesh = {};
 
@@ -193,11 +165,7 @@ namespace sponza
 				}
 				else
 				{
-					// Now there's nothing left to do, we precalculate
-					// the indices list.
-					GenerateIndices(mesh.indices, mesh.vertices);
-
-					meshes->emplace_back(mesh);
+					meshes.emplace_back(mesh);
 
 					mesh = {};
 				}
@@ -235,20 +203,22 @@ namespace sponza
 				stream >> path;
 				ParseString(stream, path);
 
-				path = base_directory + path;
-
-				materials = LoadMaterial(path.c_str());
+				materials = LoadMaterial(base_directory, path);
 			}
 			else if (property == "usemtl")
 			{
 				std::string material_name;
 				ParseString(stream, material_name);
 
-				auto material = materials->find(material_name);
+				auto material = materials.find(material_name);
 
-				if (material != materials->end())
+				if (material != materials.end())
 				{
-					mesh.material = &material->second;
+					mesh.material = material->second;
+				}
+				else
+				{
+					mesh.material = nullptr;
 				}
 			}
 		}
@@ -258,11 +228,17 @@ namespace sponza
 		return meshes;
 	}
 
-	std::unique_ptr<std::map<std::string, Material>> LoadMaterial(const char *file)
+	std::map<std::string, std::shared_ptr<Material>> LoadMaterial(
+		const std::string &base_directory, const std::string &file
+	)
 	{
-		auto materials = std::make_unique<std::map<std::string, Material>>();
+		std::map<std::string, std::shared_ptr<Material>> materials;
 
-		std::ifstream in(file);
+		std::map<std::string, Texture> textures;
+
+		const std::string path = base_directory + file;
+
+		std::ifstream in(path);
 
 		// File couldn't be open for what ever reason, return empty list.
 		if (!in.is_open())
@@ -298,9 +274,9 @@ namespace sponza
 				}
 				else
 				{
-					materials->insert(
-						std::pair<std::string, Material>(
-							material.name, material
+					materials.insert(
+						std::pair<std::string, std::shared_ptr<Material>>(
+							material.name, std::make_shared<Material>(material)
 						)
 					);
 
@@ -335,34 +311,117 @@ namespace sponza
 			}
 			else if (property == "map_Ka")
 			{
-				ParseString(stream, material.ambient_texture);
+				std::string texture_name;
+				ParseString(stream, texture_name);
+				material.ambient_texture = LoadTexture(base_directory, texture_name, textures);
 			}
 			else if (property == "map_Kd")
 			{
-				ParseString(stream, material.diffuse_texture);
+				std::string texture_name;
+				ParseString(stream, texture_name);
+				material.diffuse_texture = LoadTexture(base_directory, texture_name, textures);
 			}
 			else if (property == "map_Ks")
 			{
-				ParseString(stream, material.specular_texture);
+				std::string texture_name;
+				ParseString(stream, texture_name);
+				material.specular_texture = LoadTexture(base_directory, texture_name, textures);
 			}
-			else if (property == "map_a")
-			{
-				ParseString(stream, material.alpha_texture);
-			}
-			else if (property == "map_Disp")
-			{
-				ParseString(stream, material.displace_texture);
-			}
+//			else if (property == "map_a")
+//			{
+//				std::string texture_name;
+//				ParseString(stream, texture_name);
+//				material.alpha_texture = LoadTexture(base_directory, texture_name, textures);
+//			}
+//			else if (property == "map_Disp")
+//			{
+//				std::string texture_name;
+//				ParseString(stream, texture_name);
+//				material.displace_texture = LoadTexture(base_directory, texture_name, textures);
+//			}
 		}
 
 		// Add the last remaining material in.
-		materials->insert(
-			std::pair<std::string, Material>(
-				material.name, material
+		materials.insert(
+			std::pair<std::string, std::shared_ptr<Material>>(
+				material.name, std::make_shared<Material>(material)
 			));
 
 		in.close();
 
 		return materials;
+	}
+
+	Texture LoadTexture(
+		const std::string &base_directory,
+		const std::string &name,
+		std::map<std::string, Texture> &textures
+	)
+	{
+		if (!textures.empty())
+		{
+			auto texture = textures.find(name);
+
+			if (texture != textures.end())
+			{
+				return texture->second;
+			}
+		}
+
+		Texture new_texture = {
+			.id = 0,
+			.width = 0,
+			.height = 0,
+			.channels = 0
+		};
+
+		const std::string path = base_directory + name;
+
+		stbi_set_flip_vertically_on_load(true);
+		unsigned char *data = stbi_load(
+			path.c_str(),
+			&new_texture.width,
+			&new_texture.height,
+			&new_texture.channels,
+			0
+		);
+
+		if (data)
+		{
+			glGenTextures(1, &new_texture.id);
+			glBindTexture(GL_TEXTURE_2D, new_texture.id);
+
+			const int format = new_texture.channels == 3 ? GL_RGB : GL_RGBA;
+
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				format,
+				new_texture.width,
+				new_texture.height,
+				0,
+				format,
+				GL_UNSIGNED_BYTE,
+				data
+			);
+
+			glGenerateMipmap(GL_TEXTURE_2D);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			// Since it has been allocated to the GPU this can now be cleaned up.
+			stbi_image_free(data);
+
+			std::pair<std::map<std::string, Texture>::iterator, bool> result = textures.insert(
+				std::pair<std::string, Texture>(
+					name, new_texture
+				));
+
+			return result.first->second;
+		}
+		else
+		{
+			return new_texture;
+		}
 	}
 }

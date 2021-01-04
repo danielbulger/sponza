@@ -23,7 +23,7 @@ void key_callback(GLFWwindow *window, int key, int, int action, int)
 	switch (key)
 	{
 		case GLFW_KEY_ESCAPE:
-			if(action == GLFW_PRESS)
+			if (action == GLFW_PRESS)
 			{
 				glfwSetWindowShouldClose(window, GLFW_TRUE);
 			}
@@ -53,7 +53,9 @@ void key_callback(GLFWwindow *window, int key, int, int action, int)
 void mouse_callback(GLFWwindow *, double x, double y)
 {
 	const double xOffset = x - lastX;
-	const double yOffset = y - lastY;
+
+	// Flip the Y to match OpenGL screen space.
+	const double yOffset = lastY - y;
 
 	camera.rotate(
 		static_cast<float>(xOffset), static_cast<float>(yOffset)
@@ -70,13 +72,6 @@ int main(int argc, char *argv[])
 	{
 		return EXIT_FAILURE;
 	};
-
-	const glm::mat4 projection = glm::perspective(
-		glm::radians(45.0f),
-		1920.0f / 1080.0f,
-		0.1f,
-		10000.0f
-	);
 
 	if (!glfwInit())
 	{
@@ -126,18 +121,25 @@ int main(int argc, char *argv[])
 		"/home/daniel/Workspace/Sponza/data/render.frag"
 	);
 
-	std::unique_ptr<std::vector<sponza::Mesh>> meshes = sponza::LoadMesh(argv[1]);
+	std::vector<sponza::Mesh> meshes = sponza::LoadMesh(argv[1]);
 
-	for (auto &mesh : *meshes)
+	for (auto &mesh : meshes)
 	{
 		sponza::InitialiseMesh(mesh);
 	}
 
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
 	glEnable(GL_DEPTH_TEST);
 
-	// const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
+	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
+
+	const glm::mat4 projection = glm::perspective(
+		glm::radians(45.0f),
+		aspect,
+		0.1f,
+		10000.0f
+	);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -153,11 +155,40 @@ int main(int argc, char *argv[])
 		shader.setMat4("view", camera.getViewMatrix());
 		shader.setMat4("model", glm::mat4(1.0f));
 
-		for (const auto &mesh : *meshes)
+		for (const auto &mesh : meshes)
 		{
+			shader.setVec3("ambient", mesh.material->ambient);
+			shader.setVec3("diffuse", mesh.material->diffuse);
+			shader.setVec3("specular", mesh.material->specular);
+			shader.setFloat("specular_exponent", mesh.material->specular_exponent);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->ambient_texture.id);
+			shader.setInt("ambientTexture", 0);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->diffuse_texture.id);
+			shader.setInt("diffuseTexture", 1);
+
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->specular_texture.id);
+			shader.setInt("specularTexture", 2);
+
 			glBindVertexArray(mesh.vao_id);
 
-			glDrawElements(GL_LINES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+			glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
+
+//			glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+
+			glBindVertexArray(0);
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		glfwPollEvents();
@@ -165,7 +196,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Cleanup all the OpenGL buffers.
-	for (auto &mesh : *meshes)
+	for (auto &mesh : meshes)
 	{
 		sponza::CleanupMesh(mesh);
 	}

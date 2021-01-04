@@ -4,19 +4,28 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <memory>
 
 namespace sponza
 {
+
+	struct Texture
+	{
+		uint32_t id;
+		int32_t width;
+		int32_t height;
+		int32_t channels;
+	};
 
 	struct Material
 	{
 		std::string name;
 
-		std::string ambient_texture;
-		std::string diffuse_texture;
-		std::string specular_texture;
-		std::string alpha_texture;
-		std::string displace_texture;
+		Texture ambient_texture;
+		Texture diffuse_texture;
+		Texture specular_texture;
+		Texture alpha_texture;
+		Texture displace_texture;
 
 		glm::vec3 ambient;
 		glm::vec3 diffuse;
@@ -39,10 +48,10 @@ namespace sponza
 		std::string name;
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
-		Material *material;
+		std::shared_ptr<Material> material;
 
 		uint32_t vao_id;
-		uint32_t vba_id;
+		uint32_t vbo_id;
 		uint32_t index_buffer_id;
 	};
 

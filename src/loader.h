@@ -8,9 +8,18 @@
 
 namespace sponza
 {
-	std::unique_ptr<std::map<std::string, Material>> LoadMaterial(const char *file);
+	std::vector<Mesh> LoadMesh(const char *file);
 
-	std::unique_ptr<std::vector<Mesh>> LoadMesh(const char *file);
+	Texture LoadTexture(
+		const std::string &base_directory,
+		const std::string &name,
+		std::map<std::string, Texture> &textures
+	);
+
+	std::map<std::string, std::shared_ptr<Material>> LoadMaterial(
+		const std::string &base_directory, const std::string &file
+	);
+
 }
 
 #endif //SPONZA_LOADER_H
