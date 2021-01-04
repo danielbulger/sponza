@@ -29,7 +29,7 @@ namespace sponza
 
 	void Camera::move(CameraMovement movement, float deltaTime)
 	{
-		const float velocity = 500.0f * deltaTime;
+		const float velocity = 1000.0f * deltaTime;
 
 		switch (movement)
 		{

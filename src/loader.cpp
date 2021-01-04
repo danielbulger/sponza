@@ -368,6 +368,23 @@ namespace sponza
 			}
 		}
 
+		const std::string path = base_directory + name;
+
+		Texture texture = LoadTexture(path);
+
+		if (texture.id != 0)
+		{
+			textures.insert(
+				std::pair<std::string, Texture>(
+					name, texture
+				));
+		}
+
+		return texture;
+	}
+
+	Texture LoadTexture(const std::string &name)
+	{
 		Texture new_texture = {
 			.id = 0,
 			.width = 0,
@@ -375,11 +392,9 @@ namespace sponza
 			.channels = 0
 		};
 
-		const std::string path = base_directory + name;
-
 		stbi_set_flip_vertically_on_load(true);
 		unsigned char *data = stbi_load(
-			path.c_str(),
+			name.c_str(),
 			&new_texture.width,
 			&new_texture.height,
 			&new_texture.channels,
@@ -405,6 +420,12 @@ namespace sponza
 				data
 			);
 
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
 			glGenerateMipmap(GL_TEXTURE_2D);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
@@ -412,16 +433,61 @@ namespace sponza
 			// Since it has been allocated to the GPU this can now be cleaned up.
 			stbi_image_free(data);
 
-			std::pair<std::map<std::string, Texture>::iterator, bool> result = textures.insert(
-				std::pair<std::string, Texture>(
-					name, new_texture
-				));
-
-			return result.first->second;
+			return new_texture;
 		}
 		else
 		{
 			return new_texture;
 		}
+	}
+
+	uint32_t LoadCubeMap(const std::vector<std::string> &faces)
+	{
+		uint32_t id;
+		glGenTextures(1, &id);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, id);
+
+		int width, height, channels;
+
+		stbi_set_flip_vertically_on_load(false);
+
+		for (size_t i = 0; i < faces.size(); ++i)
+		{
+			unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &channels, 0);
+
+			if (data)
+			{
+				const int format = channels == 3 ? GL_RGB : GL_RGBA;
+
+				glTexImage2D(
+					GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+					0,
+					format,
+					width,
+					height,
+					0,
+					format,
+					GL_UNSIGNED_BYTE,
+					data
+				);
+			}
+			else
+			{
+				std::cout << "Unable to load " << faces[i] << std::endl;
+			}
+
+			stbi_image_free(data);
+
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+		return id;
 	}
 }

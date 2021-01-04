@@ -10,6 +10,10 @@ namespace sponza
 {
 	std::vector<Mesh> LoadMesh(const char *file);
 
+	uint32_t LoadCubeMap(const std::vector<std::string> &faces);
+
+	Texture LoadTexture(const std::string &name);
+
 	Texture LoadTexture(
 		const std::string &base_directory,
 		const std::string &name,

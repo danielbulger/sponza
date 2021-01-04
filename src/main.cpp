@@ -6,6 +6,7 @@
 #include <loader.h>
 #include "camera.h"
 #include "shader.h"
+#include "skybox.h"
 
 sponza::Camera camera(
 	glm::vec3(-3807.26f, 2704.69f, 102.875f),
@@ -121,6 +122,9 @@ int main(int argc, char *argv[])
 		"/home/daniel/Workspace/Sponza/data/render.frag"
 	);
 
+	sponza::Skybox skybox;
+	skybox.load();
+
 	std::vector<sponza::Mesh> meshes = sponza::LoadMesh(argv[1]);
 
 	for (auto &mesh : meshes)
@@ -131,6 +135,7 @@ int main(int argc, char *argv[])
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 
 	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
 
@@ -190,6 +195,8 @@ int main(int argc, char *argv[])
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
+
+		skybox.render(camera, projection);
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);
