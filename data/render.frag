@@ -31,7 +31,5 @@ void main()
         max(dot(h, n), 0.0), specularExponent
     );
 
-    float toon = floor(max(0.0, dot(s, normals)) * 3.0) * (1.0 / 3.0);
-
     fragColor = vec4(lightIntensity * (ka + kd + ks), 1.0);
 }
