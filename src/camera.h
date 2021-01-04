@@ -27,6 +27,8 @@ namespace sponza
 
 		void rotate(float x, float y);
 
+		void print();
+
 	private:
 		glm::vec3 m_position;
 		glm::vec3 m_front;

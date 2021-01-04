@@ -9,7 +9,7 @@
 #include "skybox.h"
 
 sponza::Camera camera(
-	glm::vec3(-3807.26f, 2704.69f, 102.875f),
+	glm::vec3(-651.053f,619.491f,7.56791f),
 	glm::vec3(0.0f, 1.0f, 0.0f),
 	0.600428f,
 	-31.0703f
@@ -21,13 +21,16 @@ float lastTime = 0.0f;
 
 void key_callback(GLFWwindow *window, int key, int, int action, int)
 {
+
+	if(action == GLFW_RELEASE)
+	{
+		return;
+	}
+
 	switch (key)
 	{
 		case GLFW_KEY_ESCAPE:
-			if (action == GLFW_PRESS)
-			{
-				glfwSetWindowShouldClose(window, GLFW_TRUE);
-			}
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
 			break;
 
 		case GLFW_KEY_W:
@@ -44,6 +47,10 @@ void key_callback(GLFWwindow *window, int key, int, int action, int)
 
 		case GLFW_KEY_D:
 			camera.move(sponza::CameraMovement::RIGHT, deltaTime);
+			break;
+
+		case GLFW_KEY_P:
+			camera.print();
 			break;
 
 		default:
@@ -162,10 +169,13 @@ int main(int argc, char *argv[])
 
 		for (const auto &mesh : meshes)
 		{
+			shader.setVec3("lightPosition", glm::vec3(-155.309,615.6,28.0008));
+			shader.setVec3("lightIntensity", glm::vec3(3.0f, 3.0f, 3.0f));
+
 			shader.setVec3("ambient", mesh.material->ambient);
 			shader.setVec3("diffuse", mesh.material->diffuse);
 			shader.setVec3("specular", mesh.material->specular);
-			shader.setFloat("specular_exponent", mesh.material->specular_exponent);
+			shader.setFloat("specularExponent", mesh.material->specular_exponent);
 
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, mesh.material->ambient_texture.id);

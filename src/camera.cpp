@@ -1,4 +1,5 @@
 #include <camera.h>
+#include <iostream>
 
 namespace sponza
 {
@@ -65,5 +66,10 @@ namespace sponza
 		}
 
 		updateCameraVectors();
+	}
+
+	void Camera::print()
+	{
+		std::cout << m_position[0] << ',' << m_position[1] << ',' << m_position[2] << std::endl;
 	}
 }
