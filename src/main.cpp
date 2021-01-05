@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 		for (const auto &mesh : meshes)
 		{
 			shader.setVec3("lightPosition", glm::vec3(-12.3221,1820.69,-19.8901));
-			shader.setVec3("lightIntensity", glm::vec3(3.0f, 3.0f, 3.0f));
+			shader.setVec3("lightIntensity", glm::vec3(1.0f, 1.0f, 1.0f));
 
 			shader.setVec3("ambient", mesh.material->ambient);
 			shader.setVec3("diffuse", mesh.material->diffuse);
