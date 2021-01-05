@@ -164,6 +164,8 @@ int main(int argc, char *argv[])
 		10000.0f
 	);
 
+	sponza::Shader *current_shader = nullptr;
+
 	while (!glfwWindowShouldClose(window))
 	{
 		const auto currentTime = static_cast<float>(glfwGetTime());
@@ -171,19 +173,18 @@ int main(int argc, char *argv[])
 		lastTime = currentTime;
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		shader.use();
+		glCullFace(GL_BACK);
 
 		const glm::mat4 viewMatrix = camera.getViewMatrix();
 
-		sponza::Shader *current_shader = nullptr;
-
 		for (const auto &mesh : meshes)
 		{
+
 			// Is there a normal map attached to the mesh
 			if(mesh.material->displace_texture.id > 0)
 			{
 				current_shader = &normal_map_shader;
+				current_shader->use();
 
 				glActiveTexture(GL_TEXTURE4);
 				glBindTexture(GL_TEXTURE_2D, mesh.material->displace_texture.id);
@@ -192,16 +193,16 @@ int main(int argc, char *argv[])
 			else
 			{
 				current_shader = &shader;
+				current_shader->use();
+
 				current_shader->setMat3("normalMatrix", glm::transpose(glm::inverse(viewMatrix)));
 			}
-
-			current_shader->use();
 
 			current_shader->setMat4("projectionMatrix", projection);
 			current_shader->setMat4("viewMatrix", viewMatrix);
 			current_shader->setMat4("modelMatrix", glm::mat4(1.0f));
 
-			current_shader->setVec3("lightPosition", glm::vec3(-12.3221,1820.69,-19.8901));
+			current_shader->setVec3("lightPosition", glm::vec3(235.43,1534.39,-44.2683));
 			current_shader->setVec3("lightIntensity", glm::vec3(1.0f, 1.0f, 1.0f));
 
 			current_shader->setVec3("ambient", mesh.material->ambient);
