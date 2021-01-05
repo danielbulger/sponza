@@ -1,12 +1,11 @@
 #version 330 core
 
 in vec2 texCoords;
-in vec3 normal;
-in vec3 position;
+in vec3 lightDirection;
+in vec3 viewDirection;
 
 out vec4 fragColor;
 
-uniform vec3 lightPosition;
 uniform vec3 lightIntensity;
 
 uniform sampler2D ambientTexture;
@@ -31,13 +30,16 @@ void main()
         discard;
     }
 
-    vec3 s = normalize(vec3(lightPosition) - position);
-    vec3 v = normalize(vec3(-position));
-    vec3 h = normalize(v + s);
+    // Map into -1 to 1 range.
+    vec3 normal = (2.0 * texture(normalTexture, texCoords, -1.0) - 1.0).rgb;
+
+    float dotN = max(dot(normal, lightDirection), 0.0);
+    vec3 reflectedLightDirection = reflect(-lightDirection, normal);
+    float specularFactor = max(dot(reflectedLightDirection, viewDirection), 0.0);
 
     vec3 ka = ambient * vec3(texture(ambientTexture, texCoords));
-    vec3 kd = diffuse * vec3(texture(diffuseTexture, texCoords)) * max(dot(s, normal), 0.0);
-    vec3 ks = specular * vec3(texture(specularTexture, texCoords)) * pow(max(dot(h, normal), 0.0), specularExponent);
+    vec3 kd = diffuse * vec3(texture(diffuseTexture, texCoords)) * dotN;
+    vec3 ks = specular * vec3(texture(specularTexture, texCoords)) * pow(specularFactor, specularExponent);
 
     vec3 color = lightIntensity * (ka + kd + ks);
 

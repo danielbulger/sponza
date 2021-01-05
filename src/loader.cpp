@@ -24,22 +24,6 @@
 
 namespace sponza
 {
-
-	std::string GetDirectory(const char *file)
-	{
-		const char *slash = strrchr(file, '/');
-
-		if (slash == nullptr)
-		{
-			return std::string();
-		}
-
-		// +1 as we want to include the slash.
-		size_t length = slash - file + 1;
-
-		return std::string(file, length);
-	}
-
 	void ParseFloat(std::istringstream &stream, float &value)
 	{
 		std::string temp;
@@ -118,11 +102,11 @@ namespace sponza
 		}
 	}
 
-	std::vector<Mesh> LoadMesh(const char *file)
+	std::vector<Mesh> LoadMesh(const Resource &resource, const char *file)
 	{
 		std::vector<Mesh> meshes;
 
-		std::ifstream in(file);
+		std::ifstream in(resource.getFilePath(file));
 
 		// File couldn't be open for what ever reason, return empty list.
 		if (!in.is_open())
@@ -130,7 +114,7 @@ namespace sponza
 			return meshes;
 		}
 
-		const std::string base_directory = GetDirectory(file);
+		const std::string base_directory = Resource::getDirectory(file);
 
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> normals;
@@ -203,7 +187,7 @@ namespace sponza
 				stream >> path;
 				ParseString(stream, path);
 
-				materials = LoadMaterial(base_directory, path);
+				materials = LoadMaterial(resource, base_directory, path);
 			}
 			else if (property == "usemtl")
 			{
@@ -229,14 +213,16 @@ namespace sponza
 	}
 
 	std::map<std::string, std::shared_ptr<Material>> LoadMaterial(
-		const std::string &base_directory, const std::string &file
+		const Resource &resource,
+		const std::string &base_directory,
+		const std::string &file
 	)
 	{
 		std::map<std::string, std::shared_ptr<Material>> materials;
 
 		std::map<std::string, Texture> textures;
 
-		const std::string path = base_directory + file;
+		const std::string path = resource.getFilePath(base_directory + file);
 
 		std::ifstream in(path);
 
@@ -313,31 +299,31 @@ namespace sponza
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.ambient_texture = LoadTexture(base_directory, texture_name, textures);
+				material.ambient_texture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Kd")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.diffuse_texture = LoadTexture(base_directory, texture_name, textures);
+				material.diffuse_texture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Ks")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.specular_texture = LoadTexture(base_directory, texture_name, textures);
+				material.specular_texture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_d")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.alpha_texture = LoadTexture(base_directory, texture_name, textures);
+				material.alpha_texture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Disp")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.displace_texture = LoadTexture(base_directory, texture_name, textures);
+				material.displace_texture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 		}
 
@@ -353,6 +339,7 @@ namespace sponza
 	}
 
 	Texture LoadTexture(
+		const Resource &resource,
 		const std::string &base_directory,
 		const std::string &name,
 		std::map<std::string, Texture> &textures
@@ -368,7 +355,7 @@ namespace sponza
 			}
 		}
 
-		const std::string path = base_directory + name;
+		const std::string path = resource.getFilePath(base_directory + name);
 
 		Texture texture = LoadTexture(path);
 

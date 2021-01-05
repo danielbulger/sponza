@@ -5,6 +5,7 @@
 
 #include "shader.h"
 #include "camera.h"
+#include "loader.h"
 
 namespace sponza
 {
@@ -19,7 +20,7 @@ namespace sponza
 
 		void render(const Camera &camera, const glm::mat4 &projection);
 
-		void load();
+		void load(const Resource &resource);
 
 	private:
 		Shader m_shader;

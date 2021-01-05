@@ -76,22 +76,22 @@ namespace sponza
 		glDepthFunc(GL_LESS);
 	}
 
-	void Skybox::load()
+	void Skybox::load(const Resource &resource)
 	{
 		m_shader = Shader(
-			"/home/daniel/Workspace/Sponza/data/skybox.vert",
-			"/home/daniel/Workspace/Sponza/data/skybox.frag"
+			resource.getFilePath("/skybox.vert").c_str(),
+			resource.getFilePath("/skybox.frag").c_str()
 		);
 
 		const std::vector<std::string> faces = {
-			"/home/daniel/Workspace/Sponza/data/skybox/right.jpg",
-			"/home/daniel/Workspace/Sponza/data/skybox/left.jpg",
+			resource.getFilePath("/skybox/right.jpg"),
+			resource.getFilePath("/skybox/left.jpg"),
 
-			"/home/daniel/Workspace/Sponza/data/skybox/top.jpg",
-			"/home/daniel/Workspace/Sponza/data/skybox/bottom.jpg",
+			resource.getFilePath("/skybox/top.jpg"),
+			resource.getFilePath("/skybox/bottom.jpg"),
 
-			"/home/daniel/Workspace/Sponza/data/skybox/front.jpg",
-			"/home/daniel/Workspace/Sponza/data/skybox/back.jpg"
+			resource.getFilePath("/skybox/front.jpg"),
+			resource.getFilePath("/skybox/back.jpg")
 		};
 
 		m_texture = sponza::LoadCubeMap(faces);
