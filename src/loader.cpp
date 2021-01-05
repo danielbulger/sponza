@@ -327,7 +327,7 @@ namespace sponza
 				ParseString(stream, texture_name);
 				material.specular_texture = LoadTexture(base_directory, texture_name, textures);
 			}
-			else if (property == "map_a")
+			else if (property == "map_d")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);

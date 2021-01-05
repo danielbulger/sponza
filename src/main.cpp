@@ -141,6 +141,9 @@ int main(int argc, char *argv[])
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 
@@ -169,7 +172,7 @@ int main(int argc, char *argv[])
 
 		for (const auto &mesh : meshes)
 		{
-			shader.setVec3("lightPosition", glm::vec3(-155.309,615.6,28.0008));
+			shader.setVec3("lightPosition", glm::vec3(-12.3221,1820.69,-19.8901));
 			shader.setVec3("lightIntensity", glm::vec3(3.0f, 3.0f, 3.0f));
 
 			shader.setVec3("ambient", mesh.material->ambient);
@@ -188,6 +191,14 @@ int main(int argc, char *argv[])
 			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, mesh.material->specular_texture.id);
 			shader.setInt("specularTexture", 2);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->alpha_texture.id != 0 ?
+				mesh.material->alpha_texture.id :
+				mesh.material->ambient_texture.id
+			);
+
+			shader.setInt("alphaTexture", 3);
 
 			glBindVertexArray(mesh.vao_id);
 
