@@ -136,13 +136,13 @@ int main(int argc, char *argv[])
 
 	for (auto &mesh : meshes)
 	{
+		sponza::ComputeTangents(mesh);
+
 		sponza::InitialiseMesh(mesh);
 	}
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
@@ -166,9 +166,11 @@ int main(int argc, char *argv[])
 
 		shader.use();
 
-		shader.setMat4("projection", projection);
-		shader.setMat4("view", camera.getViewMatrix());
-		shader.setMat4("model", glm::mat4(1.0f));
+		const glm::mat4 viewMatrix = camera.getViewMatrix();
+
+		shader.setMat4("projectionMatrix", projection);
+		shader.setMat4("viewMatrix", viewMatrix);
+		shader.setMat4("modelMatrix", glm::mat4(1.0f));
 
 		for (const auto &mesh : meshes)
 		{
@@ -197,8 +199,11 @@ int main(int argc, char *argv[])
 				mesh.material->alpha_texture.id :
 				mesh.material->ambient_texture.id
 			);
-
 			shader.setInt("alphaTexture", 3);
+
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->displace_texture.id);
+			shader.setInt("normalTexture", 4);
 
 			glBindVertexArray(mesh.vao_id);
 
@@ -208,6 +213,12 @@ int main(int argc, char *argv[])
 
 			glBindVertexArray(0);
 
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, 0);
+
+			glActiveTexture(GL_TEXTURE2);
 			glBindTexture(GL_TEXTURE_2D, 0);
 
 			glActiveTexture(GL_TEXTURE1);

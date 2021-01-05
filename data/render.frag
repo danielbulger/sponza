@@ -1,19 +1,18 @@
 #version 330 core
 
-in vec3 fragPos;
-in vec3 normals;
 in vec2 texCoords;
+in vec3 lightDirection;
+in vec3 viewDirection;
 
 out vec4 fragColor;
 
-uniform vec3 lightPosition;
 uniform vec3 lightIntensity;
-uniform float lightAttenuation;
 
 uniform sampler2D ambientTexture;
 uniform sampler2D diffuseTexture;
 uniform sampler2D specularTexture;
 uniform sampler2D alphaTexture;
+uniform sampler2D normalTexture;
 
 uniform vec3 ambient;
 uniform vec3 diffuse;
@@ -31,18 +30,18 @@ void main()
         discard;
     }
 
-    vec3 n = normalize(normals);
-    vec3 s = normalize(lightPosition - fragPos);
-    vec3 v = normalize(vec3(-fragPos));
-    vec3 h = normalize(v + s);
+    // Map into -1 to 1 range.
+    vec3 normal = (2.0 * texture(normalTexture, texCoords, -1.0) - 1.0).rgb;
 
-    vec3 ka = ambient * vec3(texture(ambientTexture, texCoords)) * lightIntensity;
-    vec3 kd = diffuse * vec3(texture(diffuseTexture, texCoords)) * max(dot(s, normals), 0.0) * lightIntensity;
-    vec3 ks = specular * vec3(texture(specularTexture, texCoords)) * pow(
-        max(dot(h, n), 0.0), specularExponent
-    ) * lightIntensity;
+    float dotN = max(dot(normal, lightDirection), 0.0);
+    vec3 reflectedLightDirection = reflect(-lightDirection, normal);
+    float specularFactor = max(dot(reflectedLightDirection, viewDirection), 0.0);
 
-    vec3 color = ka + kd + ks;
+    vec3 ka = ambient * vec3(texture(ambientTexture, texCoords));
+    vec3 kd = diffuse * vec3(texture(diffuseTexture, texCoords)) * dotN;
+    vec3 ks = specular * vec3(texture(specularTexture, texCoords)) * pow(specularFactor, specularExponent);
+
+    vec3 color = lightIntensity * (ka + kd + ks);
 
     fragColor = vec4(pow(color, vec3(1.0 / gamma)), 1.0);
 }
