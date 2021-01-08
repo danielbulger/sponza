@@ -285,11 +285,11 @@ namespace sponza
 			}
 			else if (property == "Ns")
 			{
-				ParseFloat(stream, material.specular_exponent);
+				ParseFloat(stream, material.specularExponent);
 			}
 			else if (property == "Ni")
 			{
-				ParseFloat(stream, material.optical_density);
+				ParseFloat(stream, material.opticalDensity);
 			}
 			else if (property == "d")
 			{
@@ -299,31 +299,31 @@ namespace sponza
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.ambient_texture = LoadTexture(resource, base_directory, texture_name, textures);
+				material.ambientTexture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Kd")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.diffuse_texture = LoadTexture(resource, base_directory, texture_name, textures);
+				material.diffuseTexture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Ks")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.specular_texture = LoadTexture(resource, base_directory, texture_name, textures);
+				material.specularTexture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_d")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.alpha_texture = LoadTexture(resource, base_directory, texture_name, textures);
+				material.alphaTexture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 			else if (property == "map_Disp")
 			{
 				std::string texture_name;
 				ParseString(stream, texture_name);
-				material.displace_texture = LoadTexture(resource, base_directory, texture_name, textures);
+				material.displaceTexture = LoadTexture(resource, base_directory, texture_name, textures);
 			}
 		}
 

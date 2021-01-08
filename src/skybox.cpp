@@ -60,8 +60,8 @@ namespace sponza
 		glDepthFunc(GL_LEQUAL);
 		m_shader.use();
 
-		m_shader.setMat4("projection", projection);
-		m_shader.setMat4("view", glm::mat4(glm::mat3(camera.getViewMatrix())));
+		m_shader.setMat4("projectionMatrix", projection);
+		m_shader.setMat4("viewMatrix", glm::mat4(glm::mat3(camera.getViewMatrix())));
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, m_texture);

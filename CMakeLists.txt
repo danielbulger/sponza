@@ -16,7 +16,13 @@ add_executable(${TARGET_NAME}
 	src/mesh.cpp
 	src/camera.h
 	src/camera.cpp
-	src/shader.h src/skybox.h src/skybox.cpp src/resource.h src/resource.cpp)
+	src/shader.h
+	src/skybox.h
+	src/skybox.cpp
+	src/resource.h
+	src/resource.cpp
+	src/light.h
+	src/hdr.h src/hdr.cpp src/uniforms.h src/uniforms.cpp src/light.cpp)
 
 target_include_directories(${TARGET_NAME} PRIVATE
 	src/

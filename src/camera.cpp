@@ -10,6 +10,16 @@ namespace sponza
 		updateCameraVectors();
 	}
 
+	void Camera::updateProjectionMatrix(float fov, float aspect, float nearPlane, float farPlane)
+	{
+		m_projectionMatrix = glm::perspective(
+			glm::radians(fov),
+			aspect,
+			nearPlane,
+			farPlane
+		);
+	}
+
 	glm::mat4 Camera::getViewMatrix() const
 	{
 		return glm::lookAt(m_position, m_position + m_front, m_up);
@@ -68,8 +78,13 @@ namespace sponza
 		updateCameraVectors();
 	}
 
-	void Camera::print()
+	void Camera::print() const
 	{
 		std::cout << m_position[0] << ',' << m_position[1] << ',' << m_position[2] << std::endl;
+	}
+
+	const glm::mat4& Camera::getProjectionMatrix() const
+	{
+		return m_projectionMatrix;
 	}
 }

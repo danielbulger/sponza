@@ -8,9 +8,12 @@
 #include "shader.h"
 #include "skybox.h"
 #include "resource.h"
+#include "light.h"
+#include "hdr.h"
+#include "uniforms.h"
 
 sponza::Camera camera(
-	glm::vec3(-651.053f,619.491f,7.56791f),
+	glm::vec3(-651.053f, 619.491f, 7.56791f),
 	glm::vec3(0.0f, 1.0f, 0.0f),
 	0.600428f,
 	-31.0703f
@@ -20,59 +23,11 @@ double lastX, lastY;
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
 
-void key_callback(GLFWwindow *window, int key, int, int action, int)
-{
+void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file);
 
-	if(action == GLFW_RELEASE)
-	{
-		return;
-	}
+void KeyCallback(GLFWwindow *window, int key, int, int action, int);
 
-	switch (key)
-	{
-		case GLFW_KEY_ESCAPE:
-			glfwSetWindowShouldClose(window, GLFW_TRUE);
-			break;
-
-		case GLFW_KEY_W:
-			camera.move(sponza::CameraMovement::FORWARD, deltaTime);
-			break;
-
-		case GLFW_KEY_S:
-			camera.move(sponza::CameraMovement::BACKWARD, deltaTime);
-			break;
-
-		case GLFW_KEY_A:
-			camera.move(sponza::CameraMovement::LEFT, deltaTime);
-			break;
-
-		case GLFW_KEY_D:
-			camera.move(sponza::CameraMovement::RIGHT, deltaTime);
-			break;
-
-		case GLFW_KEY_P:
-			camera.print();
-			break;
-
-		default:
-			break;
-	}
-}
-
-void mouse_callback(GLFWwindow *, double x, double y)
-{
-	const double xOffset = x - lastX;
-
-	// Flip the Y to match OpenGL screen space.
-	const double yOffset = lastY - y;
-
-	camera.rotate(
-		static_cast<float>(xOffset), static_cast<float>(yOffset)
-	);
-
-	lastX = x;
-	lastY = y;
-}
+void MouseCallback(GLFWwindow *, double x, double y);
 
 int main(int argc, char *argv[])
 {
@@ -80,9 +35,7 @@ int main(int argc, char *argv[])
 	if (argc != 2)
 	{
 		return EXIT_FAILURE;
-	};
-
-	sponza::Resource resource(argv[1]);
+	}
 
 	if (!glfwInit())
 	{
@@ -118,8 +71,8 @@ int main(int argc, char *argv[])
 		return EXIT_FAILURE;
 	}
 
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetKeyCallback(window, KeyCallback);
+	glfwSetCursorPosCallback(window, MouseCallback);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glfwMakeContextCurrent(window);
@@ -127,12 +80,25 @@ int main(int argc, char *argv[])
 
 	gladLoadGL();
 
+	RenderLoop(window, mode, argv[1]);
+
+	glfwDestroyWindow(window);
+	glfwTerminate();
+
+	return EXIT_SUCCESS;
+}
+
+void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
+{
+
+	sponza::Resource resource(file);
+
 	sponza::Shader shader(
 		resource.getFilePath("/render.vert").c_str(),
 		resource.getFilePath("/render.frag").c_str()
 	);
 
-	sponza::Shader normal_map_shader(
+	sponza::Shader normalMapShader(
 		resource.getFilePath("/normal_map_render.vert").c_str(),
 		resource.getFilePath("/normal_map_render.frag").c_str()
 	);
@@ -144,9 +110,7 @@ int main(int argc, char *argv[])
 
 	for (auto &mesh : meshes)
 	{
-		sponza::ComputeTangents(mesh);
-
-		sponza::InitialiseMesh(mesh);
+		sponza::InitialiseMesh(mesh, shader, normalMapShader);
 	}
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -157,14 +121,15 @@ int main(int argc, char *argv[])
 
 	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
 
-	const glm::mat4 projection = glm::perspective(
-		glm::radians(45.0f),
-		aspect,
-		0.1f,
-		10000.0f
-	);
+	camera.updateProjectionMatrix(45.0f, aspect, 0.1f, 10000.0f);
 
-	sponza::Shader *current_shader = nullptr;
+	sponza::PointLight lights[4];
+	sponza::InitialiseLights(lights);
+
+	sponza::Uniforms uniforms(shader.ID, normalMapShader.ID, camera, lights);
+
+	sponza::HDR hdr(mode->width, mode->height);
+	hdr.load(resource);
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -172,88 +137,18 @@ int main(int argc, char *argv[])
 		deltaTime = currentTime - lastTime;
 		lastTime = currentTime;
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glCullFace(GL_BACK);
+		uniforms.update(camera);
 
-		const glm::mat4 viewMatrix = camera.getViewMatrix();
+		hdr.bindForWrite();
 
-		for (const auto &mesh : meshes)
+		for (const sponza::Mesh &mesh : meshes)
 		{
-
-			// Is there a normal map attached to the mesh
-			if(mesh.material->displace_texture.id > 0)
-			{
-				current_shader = &normal_map_shader;
-				current_shader->use();
-
-				glActiveTexture(GL_TEXTURE4);
-				glBindTexture(GL_TEXTURE_2D, mesh.material->displace_texture.id);
-				current_shader->setInt("normalTexture", 4);
-			}
-			else
-			{
-				current_shader = &shader;
-				current_shader->use();
-
-				current_shader->setMat3("normalMatrix", glm::transpose(glm::inverse(viewMatrix)));
-			}
-
-			current_shader->setMat4("projectionMatrix", projection);
-			current_shader->setMat4("viewMatrix", viewMatrix);
-			current_shader->setMat4("modelMatrix", glm::mat4(1.0f));
-
-			current_shader->setVec3("lightPosition", glm::vec3(235.43,1534.39,-44.2683));
-			current_shader->setVec3("lightIntensity", glm::vec3(1.0f, 1.0f, 1.0f));
-
-			current_shader->setVec3("ambient", mesh.material->ambient);
-			current_shader->setVec3("diffuse", mesh.material->diffuse);
-			current_shader->setVec3("specular", mesh.material->specular);
-			current_shader->setFloat("specularExponent", mesh.material->specular_exponent);
-
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->ambient_texture.id);
-			current_shader->setInt("ambientTexture", 0);
-
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->diffuse_texture.id);
-			current_shader->setInt("diffuseTexture", 1);
-
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->specular_texture.id);
-			current_shader->setInt("specularTexture", 2);
-
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->alpha_texture.id != 0 ?
-				mesh.material->alpha_texture.id :
-				mesh.material->ambient_texture.id
-			);
-			current_shader->setInt("alphaTexture", 3);
-
-			glBindVertexArray(mesh.vao_id);
-
-			glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
-
-//			glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
-
-			glBindVertexArray(0);
-
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, 0);
-
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, 0);
+			sponza::Render(mesh);
 		}
 
-		skybox.render(camera, projection);
+		skybox.render(camera, camera.getProjectionMatrix());
+
+		hdr.render();
 
 		glfwPollEvents();
 		glfwSwapBuffers(window);
@@ -264,9 +159,58 @@ int main(int argc, char *argv[])
 	{
 		sponza::CleanupMesh(mesh);
 	}
+}
 
-	glfwDestroyWindow(window);
-	glfwTerminate();
+void KeyCallback(GLFWwindow *window, int key, int, int action, int)
+{
 
-	return EXIT_SUCCESS;
+	if (action == GLFW_RELEASE)
+	{
+		return;
+	}
+
+	switch (key)
+	{
+		case GLFW_KEY_ESCAPE:
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
+			break;
+
+		case GLFW_KEY_W:
+			camera.move(sponza::CameraMovement::FORWARD, deltaTime);
+			break;
+
+		case GLFW_KEY_S:
+			camera.move(sponza::CameraMovement::BACKWARD, deltaTime);
+			break;
+
+		case GLFW_KEY_A:
+			camera.move(sponza::CameraMovement::LEFT, deltaTime);
+			break;
+
+		case GLFW_KEY_D:
+			camera.move(sponza::CameraMovement::RIGHT, deltaTime);
+			break;
+
+		case GLFW_KEY_P:
+			camera.print();
+			break;
+
+		default:
+			break;
+	}
+}
+
+void MouseCallback(GLFWwindow *, double x, double y)
+{
+	const double xOffset = x - lastX;
+
+	// Flip the Y to match OpenGL screen space.
+	const double yOffset = lastY - y;
+
+	camera.rotate(
+		static_cast<float>(xOffset), static_cast<float>(yOffset)
+	);
+
+	lastX = x;
+	lastY = y;
 }

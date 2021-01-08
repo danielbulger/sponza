@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include "shader.h"
 
 namespace sponza
 {
@@ -21,18 +22,18 @@ namespace sponza
 	{
 		std::string name;
 
-		Texture ambient_texture;
-		Texture diffuse_texture;
-		Texture specular_texture;
-		Texture alpha_texture;
-		Texture displace_texture;
+		Texture ambientTexture;
+		Texture diffuseTexture;
+		Texture specularTexture;
+		Texture alphaTexture;
+		Texture displaceTexture;
 
 		glm::vec3 ambient;
 		glm::vec3 diffuse;
 		glm::vec3 specular;
 
-		float specular_exponent;
-		float optical_density;
+		float specularExponent;
+		float opticalDensity;
 		float dissolve;
 	};
 
@@ -51,14 +52,20 @@ namespace sponza
 		std::vector<uint32_t> indices;
 		std::shared_ptr<Material> material;
 
-		uint32_t vao_id;
-		uint32_t vbo_id;
-		uint32_t index_buffer_id;
+		uint32_t vaoId;
+		uint32_t vboId;
+		uint32_t indexBufferId;
+
+		Shader shader;
 	};
 
-	void InitialiseMesh(Mesh &mesh);
+	uint32_t InitQuadMesh();
+
+	void InitialiseMesh(Mesh &mesh, Shader defaultShader, Shader normalMapShader);
 
 	void ComputeTangents(Mesh &mesh);
+
+	void Render(const Mesh &mesh);
 
 	void CleanupMesh(Mesh &mesh);
 }

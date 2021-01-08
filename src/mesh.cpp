@@ -5,13 +5,107 @@
 namespace sponza
 {
 
-	void InitialiseMesh(Mesh &mesh)
+	uint32_t InitQuadMesh()
 	{
-		glGenVertexArrays(1, &mesh.vao_id);
-		glGenBuffers(1, &mesh.vbo_id);
-		glGenBuffers(1, &mesh.index_buffer_id);
+		static float vertices[] = {
+			-1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+			1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+			1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+		};
 
-		glBindVertexArray(mesh.vao_id);
+		uint32_t vao, vbo;
+
+		glGenVertexArrays(1, &vao);
+		glGenBuffers(1, &vbo);
+		glBindVertexArray(vao);
+		glBindBuffer(GL_ARRAY_BUFFER, vao);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), &vertices, GL_STATIC_DRAW);
+
+		// Positions
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), nullptr);
+
+		// Tex Coords
+		glEnableVertexAttribArray(1);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *) (3 * sizeof(float)));
+
+		glBindVertexArray(0);
+
+		return vao;
+	}
+
+	void Render(const Mesh &mesh)
+	{
+		const Shader &shader = mesh.shader;
+
+		shader.use();
+
+		// Is there a normal map attached to the mesh
+		if (mesh.material->displaceTexture.id > 0)
+		{
+			glActiveTexture(GL_TEXTURE4);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->displaceTexture.id);
+			shader.setInt("normalTexture", 4);
+		}
+
+		shader.setMat4("modelMatrix", glm::mat4(1.0f));
+		shader.setVec3("ambient", mesh.material->ambient);
+		shader.setVec3("diffuse", mesh.material->diffuse);
+		shader.setVec3("specular", mesh.material->specular);
+		shader.setFloat("specularExponent", mesh.material->specularExponent);
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mesh.material->ambientTexture.id);
+		shader.setInt("ambientTexture", 0);
+
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, mesh.material->diffuseTexture.id);
+		shader.setInt("diffuseTexture", 1);
+
+		glActiveTexture(GL_TEXTURE2);
+		glBindTexture(GL_TEXTURE_2D, mesh.material->specularTexture.id);
+		shader.setInt("specularTexture", 2);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, mesh.material->alphaTexture.id);
+		shader.setInt("alphaTexture", 3);
+		shader.setBool("alpha", mesh.material->alphaTexture.id > 0);
+
+		glBindVertexArray(mesh.vaoId);
+
+		glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
+
+//			glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+
+		glBindVertexArray(0);
+
+		for(int i = 0; i < 5; ++i)
+		{
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+	}
+
+	void InitialiseMesh(Mesh &mesh, Shader defaultShader, Shader normalMapShader)
+	{
+
+		ComputeTangents(mesh);
+
+		if (mesh.material->displaceTexture.id > 0)
+		{
+			mesh.shader = normalMapShader;
+		}
+		else
+		{
+			mesh.shader = defaultShader;
+		}
+
+		glGenVertexArrays(1, &mesh.vaoId);
+		glGenBuffers(1, &mesh.vboId);
+		glGenBuffers(1, &mesh.indexBufferId);
+
+		glBindVertexArray(mesh.vaoId);
 
 //		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.index_buffer_id);
 //		glBufferData(
@@ -21,7 +115,7 @@ namespace sponza
 //			GL_STATIC_DRAW
 //		);
 
-		glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo_id);
+		glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
 		glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex), &mesh.vertices[0], GL_STATIC_DRAW);
 
 		// Vertex position attribute.
@@ -72,21 +166,22 @@ namespace sponza
 			mesh.vertices[i + 2].tangent += tangent;
 		}
 
-		for(auto &vertex : mesh.vertices) {
+		for (auto &vertex : mesh.vertices)
+		{
 			vertex.tangent = glm::normalize(vertex.tangent);
 		}
 	}
 
 	void CleanupMesh(Mesh &mesh)
 	{
-		glDeleteVertexArrays(1, &mesh.vao_id);
-		glDeleteBuffers(1, &mesh.vbo_id);
+		glDeleteVertexArrays(1, &mesh.vaoId);
+		glDeleteBuffers(1, &mesh.vboId);
 //		glDeleteBuffers(1, &mesh.index_buffer_id);
 
-		glDeleteTextures(1, &mesh.material->ambient_texture.id);
-		glDeleteTextures(1, &mesh.material->specular_texture.id);
-		glDeleteTextures(1, &mesh.material->diffuse_texture.id);
-		glDeleteTextures(1, &mesh.material->displace_texture.id);
-		glDeleteTextures(1, &mesh.material->alpha_texture.id);
+		glDeleteTextures(1, &mesh.material->ambientTexture.id);
+		glDeleteTextures(1, &mesh.material->specularTexture.id);
+		glDeleteTextures(1, &mesh.material->diffuseTexture.id);
+		glDeleteTextures(1, &mesh.material->displaceTexture.id);
+		glDeleteTextures(1, &mesh.material->alphaTexture.id);
 	}
 }
