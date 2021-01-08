@@ -40,7 +40,7 @@ vec3 calculateLight(Light light)
 	vec3 v = normalize(vec3(-position));
 	vec3 h = normalize(v + s);
 
-	float attenuation = 1000.0 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
+	float attenuation = 5000.0 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
 
 	vec3 ka = mix(light.ambient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
 

@@ -35,18 +35,13 @@ namespace sponza
 		return vao;
 	}
 
-	void Render(const Mesh &mesh)
+	void Render(const Mesh &mesh, bool updateMaterial)
 	{
 		const Shader &shader = mesh.shader;
 
-		shader.use();
-
-		// Is there a normal map attached to the mesh
-		if (mesh.material->displaceTexture.id > 0)
+		if(updateMaterial)
 		{
-			glActiveTexture(GL_TEXTURE4);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->displaceTexture.id);
-			shader.setInt("normalTexture", 4);
+			shader.use();
 		}
 
 		shader.setMat4("modelMatrix", glm::mat4(1.0f));
@@ -55,22 +50,33 @@ namespace sponza
 		shader.setVec3("specular", mesh.material->specular);
 		shader.setFloat("specularExponent", mesh.material->specularExponent);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mesh.material->ambientTexture.id);
-		shader.setInt("ambientTexture", 0);
+		if(updateMaterial)
+		{
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->ambientTexture.id);
+			shader.setInt("ambientTexture", 0);
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, mesh.material->diffuseTexture.id);
-		shader.setInt("diffuseTexture", 1);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->diffuseTexture.id);
+			shader.setInt("diffuseTexture", 1);
 
-		glActiveTexture(GL_TEXTURE2);
-		glBindTexture(GL_TEXTURE_2D, mesh.material->specularTexture.id);
-		shader.setInt("specularTexture", 2);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->specularTexture.id);
+			shader.setInt("specularTexture", 2);
 
-		glActiveTexture(GL_TEXTURE3);
-		glBindTexture(GL_TEXTURE_2D, mesh.material->alphaTexture.id);
-		shader.setInt("alphaTexture", 3);
-		shader.setBool("alpha", mesh.material->alphaTexture.id > 0);
+			glActiveTexture(GL_TEXTURE3);
+			glBindTexture(GL_TEXTURE_2D, mesh.material->alphaTexture.id);
+			shader.setInt("alphaTexture", 3);
+			shader.setBool("alpha", mesh.material->alphaTexture.id > 0);
+
+			// Is there a normal map attached to the mesh
+			if (mesh.material->displaceTexture.id > 0)
+			{
+				glActiveTexture(GL_TEXTURE4);
+				glBindTexture(GL_TEXTURE_2D, mesh.material->displaceTexture.id);
+				shader.setInt("normalTexture", 4);
+			}
+		}
 
 		glBindVertexArray(mesh.vaoId);
 
@@ -79,12 +85,6 @@ namespace sponza
 //			glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 
 		glBindVertexArray(0);
-
-		for(int i = 0; i < 5; ++i)
-		{
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
 	}
 
 	void InitialiseMesh(Mesh &mesh, Shader defaultShader, Shader normalMapShader)

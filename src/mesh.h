@@ -65,7 +65,7 @@ namespace sponza
 
 	void ComputeTangents(Mesh &mesh);
 
-	void Render(const Mesh &mesh);
+	void Render(const Mesh &mesh, bool updateMaterial);
 
 	void CleanupMesh(Mesh &mesh);
 }

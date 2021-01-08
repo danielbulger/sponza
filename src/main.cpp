@@ -141,9 +141,18 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 
 		hdr.bindForWrite();
 
+		sponza::Material* currentMaterial = nullptr;
+
 		for (const sponza::Mesh &mesh : meshes)
 		{
-			sponza::Render(mesh);
+			sponza::Render(mesh, mesh.material.get() != currentMaterial);
+			currentMaterial = mesh.material.get();
+		}
+
+		for(int i = 0; i < 5; ++i)
+		{
+			glActiveTexture(GL_TEXTURE1 + i);
+			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		skybox.render(camera, camera.getProjectionMatrix());

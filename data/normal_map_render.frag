@@ -38,7 +38,7 @@ const float gamma = 2.2;
 vec3 calculateLight(Light light, vec3 lightEyePosition, vec3 normal)
 {
 	float distance = length(light.position.xyz - worldPosition);
-	float attenuation = 1000 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
+	float attenuation = 5000 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
 
 	float dotN = max(dot(normal, lightEyePosition), 0.0);
 	vec3 reflectedLightDirection = reflect(-lightEyePosition, normal);
