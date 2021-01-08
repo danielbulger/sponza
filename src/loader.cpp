@@ -21,6 +21,7 @@
 #pragma GCC diagnostic pop
 
 #include <glad/glad.h>
+#include <algorithm>
 
 namespace sponza
 {
@@ -206,6 +207,10 @@ namespace sponza
 				}
 			}
 		}
+
+		std::sort(meshes.begin(), meshes.end(), [](const Mesh &a, const Mesh &b) {
+			return reinterpret_cast<size_t>(a.material.get()) > reinterpret_cast<size_t>(b.material.get());
+		});
 
 		in.close();
 
