@@ -14,5 +14,5 @@ void main() {
 
 	colour = vec3(1.0) - exp(-colour * exposure);
 
-	fragColour = vec4(pow(colour, vec3(1.0 / gamma)), 1.0);
+	fragColour = vec4(colour, 1.0); //vec4(pow(colour, vec3(1.0 / gamma)), 1.0);
 }

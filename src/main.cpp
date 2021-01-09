@@ -32,12 +32,7 @@ void MouseCallback(GLFWwindow *, double x, double y);
 int main(int argc, char *argv[])
 {
 
-	if (argc != 2)
-	{
-		return EXIT_FAILURE;
-	}
-
-	if (!glfwInit())
+	if (argc != 2 || !glfwInit())
 	{
 		return EXIT_FAILURE;
 	}

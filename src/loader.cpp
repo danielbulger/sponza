@@ -25,6 +25,48 @@
 
 namespace sponza
 {
+
+	using IndexPair = std::pair<uint32_t, uint32_t>;
+
+	struct VertexCompare
+	{
+		bool operator()(const IndexPair& p1, const IndexPair &p2) const
+		{
+			return p1.first < p2.first;
+		}
+	};
+
+	void ComputeIndices(
+		Mesh &mesh,
+		const std::vector<Vertex> &vertices,
+		const std::vector<uint32_t> &indices
+	)
+	{
+		std::set<IndexPair, VertexCompare> buffer;
+
+		mesh.vertices.resize(mesh.indices.size());
+		mesh.indices.resize(mesh.indices.size());
+
+		uint32_t currentIndex = 0;
+
+		for (auto index : indices)
+		{
+			auto it = buffer.find(std::make_pair(index, 0));
+
+			if(it != buffer.end())
+			{
+				mesh.indices.emplace_back(it->second);
+			}
+			else
+			{
+				mesh.vertices.emplace_back(vertices[index]);
+				mesh.indices.push_back(currentIndex);
+				buffer.insert(std::make_pair(index, currentIndex));
+				++currentIndex;
+			}
+		}
+	}
+
 	void ParseFloat(std::istringstream &stream, float &value)
 	{
 		std::string temp;
@@ -80,6 +122,7 @@ namespace sponza
 
 	void GenerateVertices(
 		std::vector<Vertex> &vertices,
+		std::vector<uint32_t> &indices,
 		const std::vector<glm::vec3> &positions,
 		const std::vector<glm::vec3> &normals,
 		const std::vector<glm::vec2> &tex,
@@ -100,6 +143,8 @@ namespace sponza
 			vertex.normal = normals[face[2] - 1];
 
 			vertices.emplace_back(vertex);
+
+			indices.push_back(vertices.size() - 1);
 		}
 	}
 
@@ -117,6 +162,8 @@ namespace sponza
 
 		const std::string base_directory = Resource::getDirectory(file);
 
+		std::vector<Vertex> vertices;
+		std::vector<uint32_t> indices;
 		std::vector<glm::vec3> positions;
 		std::vector<glm::vec3> normals;
 		std::vector<glm::vec2> tex;
@@ -150,6 +197,9 @@ namespace sponza
 				}
 				else
 				{
+					ComputeIndices(mesh, vertices, indices);
+					indices.clear();
+
 					meshes.emplace_back(mesh);
 
 					mesh = {};
@@ -178,7 +228,10 @@ namespace sponza
 			else if (property == "f")
 			{
 				GenerateVertices(
-					mesh.vertices, positions, normals, tex, stream
+					vertices,
+					indices,
+					positions,
+					normals, tex, stream
 				);
 			}
 			else if (property == "mtllib")
@@ -208,9 +261,12 @@ namespace sponza
 			}
 		}
 
-		std::sort(meshes.begin(), meshes.end(), [](const Mesh &a, const Mesh &b) {
-			return reinterpret_cast<size_t>(a.material.get()) > reinterpret_cast<size_t>(b.material.get());
-		});
+		std::sort(
+			meshes.begin(), meshes.end(), [](const Mesh &a, const Mesh &b)
+			{
+				return reinterpret_cast<size_t>(a.material.get()) > reinterpret_cast<size_t>(b.material.get());
+			}
+		);
 
 		in.close();
 

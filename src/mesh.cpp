@@ -80,9 +80,9 @@ namespace sponza
 
 		glBindVertexArray(mesh.vaoId);
 
-		glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
+//		glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
 
-//			glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 
 		glBindVertexArray(0);
 	}
@@ -107,13 +107,8 @@ namespace sponza
 
 		glBindVertexArray(mesh.vaoId);
 
-//		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.index_buffer_id);
-//		glBufferData(
-//			GL_ELEMENT_ARRAY_BUFFER,
-//			mesh.indices.size() * sizeof(glm::vec3),
-//			&mesh.indices[0],
-//			GL_STATIC_DRAW
-//		);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexBufferId);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(uint32_t), &mesh.indices[0], GL_STATIC_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, mesh.vboId);
 		glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex), &mesh.vertices[0], GL_STATIC_DRAW);
@@ -142,15 +137,16 @@ namespace sponza
 
 	void ComputeTangents(Mesh &mesh)
 	{
-		for (size_t i = 0; i < mesh.vertices.size(); i += 3)
+		for (size_t i = 0; i < mesh.indices.size(); i += 3)
 		{
-			glm::vec3 &v0 = mesh.vertices[i].position;
-			glm::vec3 &v1 = mesh.vertices[i + 1].position;
-			glm::vec3 &v2 = mesh.vertices[i + 2].position;
 
-			glm::vec2 &uv0 = mesh.vertices[i].tex;
-			glm::vec2 &uv1 = mesh.vertices[i + 1].tex;
-			glm::vec2 &uv2 = mesh.vertices[i + 2].tex;
+			glm::vec3 &v0 = mesh.vertices[mesh.indices[i]].position;
+			glm::vec3 &v1 = mesh.vertices[mesh.indices[i + 1]].position;
+			glm::vec3 &v2 = mesh.vertices[mesh.indices[i + 2]].position;
+
+			glm::vec2 &uv0 = mesh.vertices[mesh.indices[i]].tex;
+			glm::vec2 &uv1 = mesh.vertices[mesh.indices[i + 1]].tex;
+			glm::vec2 &uv2 = mesh.vertices[mesh.indices[i + 2]].tex;
 
 			glm::vec3 edge1 = v1 - v0;
 			glm::vec3 edge2 = v2 - v0;
@@ -161,9 +157,9 @@ namespace sponza
 			const float r = 1.0f / (delta1.x * delta2.y - delta1.y * delta2.x);
 			glm::vec3 tangent = r * (edge1 * delta2.y - edge2 * delta1.y);
 
-			mesh.vertices[i].tangent += tangent;
-			mesh.vertices[i + 1].tangent += tangent;
-			mesh.vertices[i + 2].tangent += tangent;
+			mesh.vertices[mesh.indices[i]].tangent += tangent;
+			mesh.vertices[mesh.indices[i + 1]].tangent += tangent;
+			mesh.vertices[mesh.indices[i + 2]].tangent += tangent;
 		}
 
 		for (auto &vertex : mesh.vertices)
@@ -176,7 +172,7 @@ namespace sponza
 	{
 		glDeleteVertexArrays(1, &mesh.vaoId);
 		glDeleteBuffers(1, &mesh.vboId);
-//		glDeleteBuffers(1, &mesh.index_buffer_id);
+		glDeleteBuffers(1, &mesh.indexBufferId);
 
 		glDeleteTextures(1, &mesh.material->ambientTexture.id);
 		glDeleteTextures(1, &mesh.material->specularTexture.id);
