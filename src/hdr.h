@@ -16,7 +16,7 @@ namespace sponza
 
 		void load(const Resource &resource);
 
-		void bindForWrite();
+		void bindForWrite(uint32_t width, uint32_t height, bool firstPass);
 
 		void render();
 	private:

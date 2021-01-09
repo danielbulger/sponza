@@ -35,6 +35,16 @@ namespace sponza
 
 		void print() const;
 
+		inline float getNearPlane() const
+		{
+			return m_nearPlane;
+		}
+
+		inline float getFarPlane() const
+		{
+			return m_farPlane;
+		}
+
 	private:
 
 		glm::mat4 m_projectionMatrix{};
@@ -47,6 +57,9 @@ namespace sponza
 
 		float m_yaw;
 		float m_pitch;
+
+		float m_nearPlane;
+		float m_farPlane;
 
 		void updateCameraVectors();
 	};

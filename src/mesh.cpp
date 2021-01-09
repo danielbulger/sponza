@@ -35,52 +35,101 @@ namespace sponza
 		return vao;
 	}
 
-	void Render(const Mesh &mesh, bool updateMaterial)
+	void Render(
+		const Mesh &mesh,
+		const PointLight &light,
+		int depthTexture,
+		float farPlane,
+		bool updateMaterial,
+		bool updateShader
+	)
 	{
 		const Shader &shader = mesh.shader;
 
-		if(updateMaterial)
+		if (updateShader)
 		{
 			shader.use();
+
+			shader.setMat4("modelMatrix", glm::mat4(1.0f));
+			shader.setFloat("farPlane", farPlane);
+			shader.setVec4("lightPosition", light.position);
+			shader.setVec4("lightAmbient", light.ambient);
+			shader.setVec4("lightDiffuse", light.diffuse);
+			shader.setVec4("lightSpecular", light.specular);
+			shader.setVec4("lightCoef", light.coef);
 		}
 
-		shader.setMat4("modelMatrix", glm::mat4(1.0f));
-		shader.setVec3("ambient", mesh.material->ambient);
-		shader.setVec3("diffuse", mesh.material->diffuse);
-		shader.setVec3("specular", mesh.material->specular);
-		shader.setFloat("specularExponent", mesh.material->specularExponent);
-
-		if(updateMaterial)
+		if (updateMaterial || updateShader)
 		{
-			glActiveTexture(GL_TEXTURE0);
+
+			uint32_t boundTexture = 0;
+
+			shader.setVec3("ambient", mesh.material->ambient);
+			shader.setVec3("diffuse", mesh.material->diffuse);
+			shader.setVec3("specular", mesh.material->specular);
+			shader.setFloat("specularExponent", mesh.material->specularExponent);
+			shader.setBool("hasSpecular", mesh.material->specularTexture.id > 0);
+			shader.setBool("hasAlpha", mesh.material->alphaTexture.id > 0);
+
+			for(int i = 0; i < 5; ++i)
+			{
+				glActiveTexture(GL_TEXTURE0 + i);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
+
+			glActiveTexture(GL_TEXTURE0 + boundTexture);
 			glBindTexture(GL_TEXTURE_2D, mesh.material->ambientTexture.id);
-			shader.setInt("ambientTexture", 0);
+			shader.setInt("ambientTexture", boundTexture++);
 
-			glActiveTexture(GL_TEXTURE1);
+			glActiveTexture(GL_TEXTURE0 + boundTexture);
 			glBindTexture(GL_TEXTURE_2D, mesh.material->diffuseTexture.id);
-			shader.setInt("diffuseTexture", 1);
+			shader.setInt("diffuseTexture", boundTexture++);
 
-			glActiveTexture(GL_TEXTURE2);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->specularTexture.id);
-			shader.setInt("specularTexture", 2);
+			if(mesh.material->specularTexture.id > 0)
+			{
+				glActiveTexture(GL_TEXTURE0 + boundTexture);
+				glBindTexture(GL_TEXTURE_2D, mesh.material->specularTexture.id);
+				shader.setInt("specularTexture", boundTexture++);
+			}
+			else
+			{
+				shader.setInt("specularTexture", 0);
+			}
 
-			glActiveTexture(GL_TEXTURE3);
-			glBindTexture(GL_TEXTURE_2D, mesh.material->alphaTexture.id);
-			shader.setInt("alphaTexture", 3);
-			shader.setBool("alpha", mesh.material->alphaTexture.id > 0);
+			if(mesh.material->alphaTexture.id > 0)
+			{
+				glActiveTexture(GL_TEXTURE0 + boundTexture);
+				glBindTexture(GL_TEXTURE_2D, mesh.material->alphaTexture.id);
+				shader.setInt("alphaTexture",  boundTexture++);
+			}
+			else
+			{
+				shader.setInt("alphaTexture",  0);
+			}
 
 			// Is there a normal map attached to the mesh
 			if (mesh.material->displaceTexture.id > 0)
 			{
-				glActiveTexture(GL_TEXTURE4);
+				glActiveTexture(GL_TEXTURE0 + boundTexture);
 				glBindTexture(GL_TEXTURE_2D, mesh.material->displaceTexture.id);
-				shader.setInt("normalTexture", 4);
+				shader.setInt("normalTexture", boundTexture++);
 			}
+			else
+			{
+				shader.setInt("normalTexture", 0);
+			}
+
+			glActiveTexture(GL_TEXTURE0 + boundTexture);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, depthTexture);
+			shader.setInt("depthTexture",  boundTexture);
 		}
 
-		glBindVertexArray(mesh.vaoId);
+		DrawMesh(mesh);
+	}
 
-//		glDrawArrays(GL_TRIANGLES, 0, mesh.vertices.size());
+	void DrawMesh(const Mesh &mesh)
+	{
+		glBindVertexArray(mesh.vaoId);
 
 		glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
 
@@ -140,22 +189,22 @@ namespace sponza
 		for (size_t i = 0; i < mesh.indices.size(); i += 3)
 		{
 
-			glm::vec3 &v0 = mesh.vertices[mesh.indices[i]].position;
-			glm::vec3 &v1 = mesh.vertices[mesh.indices[i + 1]].position;
-			glm::vec3 &v2 = mesh.vertices[mesh.indices[i + 2]].position;
+			const glm::vec3 &v0 = mesh.vertices[mesh.indices[i]].position;
+			const glm::vec3 &v1 = mesh.vertices[mesh.indices[i + 1]].position;
+			const glm::vec3 &v2 = mesh.vertices[mesh.indices[i + 2]].position;
 
-			glm::vec2 &uv0 = mesh.vertices[mesh.indices[i]].tex;
-			glm::vec2 &uv1 = mesh.vertices[mesh.indices[i + 1]].tex;
-			glm::vec2 &uv2 = mesh.vertices[mesh.indices[i + 2]].tex;
+			const glm::vec2 &uv0 = mesh.vertices[mesh.indices[i]].tex;
+			const glm::vec2 &uv1 = mesh.vertices[mesh.indices[i + 1]].tex;
+			const glm::vec2 &uv2 = mesh.vertices[mesh.indices[i + 2]].tex;
 
-			glm::vec3 edge1 = v1 - v0;
-			glm::vec3 edge2 = v2 - v0;
+			const glm::vec3 edge1 = v1 - v0;
+			const glm::vec3 edge2 = v2 - v0;
 
-			glm::vec2 delta1 = uv1 - uv0;
-			glm::vec2 delta2 = uv2 - uv0;
+			const glm::vec2 delta1 = uv1 - uv0;
+			const glm::vec2 delta2 = uv2 - uv0;
 
 			const float r = 1.0f / (delta1.x * delta2.y - delta1.y * delta2.x);
-			glm::vec3 tangent = r * (edge1 * delta2.y - edge2 * delta1.y);
+			const glm::vec3 tangent = r * (edge1 * delta2.y - edge2 * delta1.y);
 
 			mesh.vertices[mesh.indices[i]].tangent += tangent;
 			mesh.vertices[mesh.indices[i + 1]].tangent += tangent;

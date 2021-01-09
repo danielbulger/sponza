@@ -1,22 +1,10 @@
 #version 330 core
 
-struct Light {
-	vec4 position;
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
-	vec4 coef;
-};
-
-layout (std140) uniform LightBlock
-{
-	Light lights[4];
-};
-
 in vec2 texCoords;
 in vec3 viewDirection;
-in vec3 lightPositions[4];
 in vec3 worldPosition;
+in vec3 lightDirection;
+in vec3 lightEyePosition;
 
 out vec4 fragColour;
 
@@ -26,34 +14,37 @@ uniform sampler2D specularTexture;
 uniform sampler2D alphaTexture;
 uniform sampler2D normalTexture;
 
-uniform bool alpha;
+uniform samplerCube depthTexture;
+uniform float farPlane;
+
+uniform bool hasAlpha;
+uniform bool hasSpecular;
 
 uniform vec3 ambient;
 uniform vec3 diffuse;
 uniform vec3 specular;
 uniform float specularExponent;
 
-const float gamma = 2.2;
+uniform vec4 lightPosition;
+uniform vec4 lightAmbient;
+uniform vec4 lightDiffuse;
+uniform vec4 lightSpecular;
+uniform vec4 lightCoef;
 
-vec3 calculateLight(Light light, vec3 lightEyePosition, vec3 normal)
+float calculateShadow()
 {
-	float distance = length(light.position.xyz - worldPosition);
-	float attenuation = 5000 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
+	vec3 v = worldPosition - lightPosition.xyz;
+	float depth = texture(depthTexture, v).r * farPlane;
 
-	float dotN = max(dot(normal, lightEyePosition), 0.0);
-	vec3 reflectedLightDirection = reflect(-lightEyePosition, normal);
-	float specularFactor = max(dot(reflectedLightDirection, viewDirection), 0.0);
+	float currentDepth = length(v);
 
-	vec3 ka = mix(light.ambient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
-	vec3 kd = light.diffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * dotN;
-	vec3 ks = light.specular.xyz * specular * vec3(texture(specularTexture, texCoords)) * pow(specularFactor, specularExponent);
+	return currentDepth - 0.05 > depth ? 1.0 : 0.0;
 
-	return attenuation * (ka + (kd +  ks));
 }
 
 void main()
 {
-	if (alpha && texture(alphaTexture, texCoords).r == 0) {
+	if (hasAlpha && texture(alphaTexture, texCoords).r == 0) {
 		discard;
 	}
 
@@ -62,9 +53,22 @@ void main()
 
 	vec3 colour = vec3(0.0, 0.0, 0.0);
 
-	for(int i = 0; i < 4; ++i) {
-		colour += calculateLight(lights[i], lightPositions[i], normal);
+	float distance = length(lightPosition.xyz - worldPosition);
+	float attenuation = 5000 / (lightCoef.x + lightCoef.y * distance + lightCoef.z * (distance * distance));
+
+	float dotN = max(dot(normal, lightDirection), 0.0);
+	vec3 reflectedLightDirection = reflect(-lightDirection, normal);
+	float specularFactor = max(dot(lightDirection, viewDirection), 0.0);
+
+	vec3 ka = mix(lightAmbient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
+	vec3 kd = lightDiffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * dotN;
+	vec3 ks = lightSpecular.xyz * specular;
+
+	if (hasSpecular) {
+		ks *= vec3(texture(specularTexture, texCoords));
 	}
 
-	fragColour = vec4(colour, 1.0);
+	ks *= pow(specularFactor, specularExponent);
+
+	fragColour =  vec4(attenuation * (ka + (1.0 - calculateShadow()) * (kd + ks)), 1.0f);
 }

@@ -1,19 +1,5 @@
 #version 330 core
 
-struct Light {
-	vec4 position;
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
-	vec4 coef;
-};
-
-layout (std140) uniform LightBlock
-{
-	Light lights[4];
-};
-
-
 in vec2 texCoords;
 in vec3 normal;
 in vec3 position;
@@ -26,45 +12,55 @@ uniform sampler2D specularTexture;
 uniform sampler2D alphaTexture;
 uniform sampler2D normalTexture;
 
-uniform bool alpha;
+uniform bool hasAplha;
+uniform bool hasSpecular;
 
 uniform vec3 ambient;
 uniform vec3 diffuse;
 uniform vec3 specular;
 uniform float specularExponent;
 
-vec3 calculateLight(Light light)
+uniform vec4 lightPosition;
+uniform vec4 lightAmbient;
+uniform vec4 lightDiffuse;
+uniform vec4 lightSpecular;
+uniform vec4 lightCoef;
+
+uniform samplerCube depthTexture;
+uniform float farPlane;
+
+float calculateShadow()
 {
-	float distance = length(light.position.xyz - position);
-	vec3 s = normalize(distance - position);
-	vec3 v = normalize(vec3(-position));
-	vec3 h = normalize(v + s);
+	vec3 v = position - lightPosition.xyz;
+	float depth = texture(depthTexture, v).r * farPlane;
 
-	float attenuation = 5000.0 / (light.coef.x + light.coef.y * distance + light.coef.z * (distance * distance));
+	float currentDepth = length(v);
 
-	vec3 ka = mix(light.ambient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
-
-	vec3 kd = light.diffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * max(dot(s, normal), 0.0);
-
-	vec3 ks = light.specular.xyz * specular * vec3(
-		texture(specularTexture, texCoords)
-	) * pow(max(dot(h, normal), 0.0), specularExponent);
-
-	return attenuation * (ka + (kd + ks));
+	return currentDepth - 0.05 > depth ? 1.0 : 0.0;
 }
 
 void main()
 {
-
-	if (alpha && texture(alphaTexture, texCoords).r == 0) {
+	if (hasAplha && texture(alphaTexture, texCoords).r == 0) {
 		discard;
 	}
 
-	vec3 colour = vec3(0.0, 0.0, 0.0);
+	float distance = length(lightPosition.xyz - position);
+	vec3 s = normalize(distance - position);
+	vec3 v = normalize(vec3(-position));
+	vec3 h = normalize(v + s);
 
-	for (int i = 0; i < 1; ++i) {
-		colour += calculateLight(lights[i]);
+	float attenuation = 5000.0 / (lightCoef.x + lightCoef.y * distance + lightCoef.z * (distance * distance));
+
+	vec3 ka = mix(lightAmbient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
+	vec3 kd = lightDiffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * max(dot(s, normal), 0.0);
+	vec3 ks = lightSpecular.xyz * specular;
+
+	if(hasSpecular) {
+		ks *= vec3(texture(specularTexture, texCoords));
 	}
 
-	fragColour = vec4(colour, 1.0);
+	ks *= pow(max(dot(h, normal), 0.0), specularExponent);
+
+	fragColour = vec4(attenuation *  (ka + (1.0 - calculateShadow()) *(kd + ks)), 1.0f);
 }

@@ -11,6 +11,7 @@
 #include "light.h"
 #include "hdr.h"
 #include "uniforms.h"
+#include "shadow_map.h"
 
 sponza::Camera camera(
 	glm::vec3(-651.053f, 619.491f, 7.56791f),
@@ -22,6 +23,41 @@ sponza::Camera camera(
 double lastX, lastY;
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
+
+void RenderDepthPass(const std::vector<sponza::Mesh> &meshes)
+{
+	for (const sponza::Mesh &mesh : meshes)
+	{
+		sponza::DrawMesh(mesh);
+	}
+}
+
+void RenderScene(
+	const std::vector<sponza::Mesh> &meshes,
+	const sponza::PointLight &light,
+	int depthTexture,
+	float farPlane
+)
+{
+
+	uint32_t currentShader = 0;
+	sponza::Material *currentMaterial = nullptr;
+
+	for (const sponza::Mesh &mesh : meshes)
+	{
+		sponza::Render(
+			mesh,
+			light,
+			depthTexture,
+			farPlane,
+			mesh.material.get() != currentMaterial,
+			mesh.shader.ID != currentShader
+		);
+
+		currentMaterial = mesh.material.get();
+		currentShader = mesh.shader.ID;
+	}
+}
 
 void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file);
 
@@ -113,18 +149,24 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE);
 
 	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
 
-	camera.updateProjectionMatrix(45.0f, aspect, 0.1f, 10000.0f);
+	camera.updateProjectionMatrix(60.0f, aspect, 0.1f, 10000.0f);
 
-	sponza::PointLight lights[4];
+	sponza::PointLight lights[2];
 	sponza::InitialiseLights(lights);
 
-	sponza::Uniforms uniforms(shader.ID, normalMapShader.ID, camera, lights);
+	sponza::Uniforms uniforms(shader.ID, normalMapShader.ID, camera);
 
 	sponza::HDR hdr(mode->width, mode->height);
 	hdr.load(resource);
+
+	sponza::ShadowMap shadowMap(1024, 1024);
+	shadowMap.load(resource);
+	shadowMap.updateProjectionMatrix(camera.getNearPlane(), camera.getFarPlane());
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -134,19 +176,25 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 
 		uniforms.update(camera);
 
-		hdr.bindForWrite();
+		bool firstPass = true;
 
-		sponza::Material* currentMaterial = nullptr;
-
-		for (const sponza::Mesh &mesh : meshes)
+		for (const sponza::PointLight &light : lights)
 		{
-			sponza::Render(mesh, mesh.material.get() != currentMaterial);
-			currentMaterial = mesh.material.get();
+			shadowMap.bindForWrite(light, camera.getFarPlane());
+
+			RenderDepthPass(meshes);
+
+			// Restore the HDR Buffer as the destination
+			hdr.bindForWrite(mode->width, mode->height, firstPass);
+
+			RenderScene(meshes, light, shadowMap.getTextureId(), camera.getFarPlane());
+
+			firstPass = false;
 		}
 
-		for(int i = 0; i < 5; ++i)
+		for (int i = 0; i < 5; ++i)
 		{
-			glActiveTexture(GL_TEXTURE1 + i);
+			glActiveTexture(GL_TEXTURE0 + i);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 

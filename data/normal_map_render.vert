@@ -5,18 +5,6 @@ layout (location = 1) in vec3 a_normal;
 layout (location = 2) in vec3 a_tangent;
 layout (location = 3) in vec2 a_texCoords;
 
-struct Light {
-	vec4 position;
-	vec4 ambient;
-	vec4 diffuse;
-	vec4 specular;
-	vec4 coef;
-};
-
-layout (std140) uniform LightBlock {
-	Light lights[4];
-};
-
 layout (std140) uniform CameraBlock
 {
 	mat4 projectionMatrix;
@@ -25,11 +13,13 @@ layout (std140) uniform CameraBlock
 };
 
 uniform mat4 modelMatrix;
+uniform vec4 lightPosition;
 
-out vec3 worldPosition;
 out vec2 texCoords;
 out vec3 viewDirection;
-out vec3 lightDirection[4];
+out vec3 worldPosition;
+out vec3 lightDirection;
+out vec3 lightEyePosition;
 
 void main()
 {
@@ -41,14 +31,13 @@ void main()
 
 	vec3 eyePosition = (viewMatrix * vec4(a_position, 1.0)).xyz;
 
-	for (int i = 0; i < 4; ++i) {
-		vec3 lightEyePosition = (viewMatrix * vec4(lights[i].position.xyz, 1.0)).xyz;
-		lightDirection[i] = normalize(TBN * (lightEyePosition - eyePosition));
-	}
+	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(a_position, 1.0);
+
+	texCoords = a_texCoords;
 
 	viewDirection = normalize(TBN * -eyePosition);
+	worldPosition = vec3(modelMatrix * vec4(a_position, 1.0));
 
-	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(a_position, 1.0);
-	worldPosition = a_position;
-	texCoords = a_texCoords;
+	lightEyePosition = vec3(viewMatrix * vec4(lightPosition.xyz, 1.0));
+	lightDirection = normalize(TBN * (lightEyePosition - eyePosition));
 }

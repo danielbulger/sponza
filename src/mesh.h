@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include "shader.h"
+#include "light.h"
 
 namespace sponza
 {
@@ -65,7 +66,16 @@ namespace sponza
 
 	void ComputeTangents(Mesh &mesh);
 
-	void Render(const Mesh &mesh, bool updateMaterial);
+	void Render(
+		const Mesh &mesh,
+		const PointLight &light,
+		int depthTexture,
+		float farPlane,
+		bool updateMaterial,
+		bool updateShader
+	);
+
+	void DrawMesh(const Mesh &mesh);
 
 	void CleanupMesh(Mesh &mesh);
 }

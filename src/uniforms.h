@@ -20,13 +20,13 @@ namespace sponza
 	class Uniforms
 	{
 	public:
-		Uniforms(int shaderId, int normalMapShaderId, const Camera &camera, sponza::PointLight *lights);
+		Uniforms(int shaderId, int normalMapShaderId, const Camera &camera);
 
 		~Uniforms();
 
 		void update(const Camera &camera);
 	private:
-		uint32_t m_uniformBuffer[2];
+		uint32_t m_uniformBuffer[1];
 		GlobalUniforms m_uniforms;
 	};
 }

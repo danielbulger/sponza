@@ -12,6 +12,9 @@ namespace sponza
 
 	void Camera::updateProjectionMatrix(float fov, float aspect, float nearPlane, float farPlane)
 	{
+		m_farPlane = farPlane;
+		m_nearPlane = nearPlane;
+
 		m_projectionMatrix = glm::perspective(
 			glm::radians(fov),
 			aspect,
