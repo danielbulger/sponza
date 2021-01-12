@@ -12,6 +12,7 @@
 #include "hdr.h"
 #include "uniforms.h"
 #include "shadow_map.h"
+#include "bounding_volume.h"
 
 sponza::Camera camera(
 	glm::vec3(-651.053f, 619.491f, 7.56791f),
@@ -24,38 +25,37 @@ double lastX, lastY;
 float deltaTime = 0.0f;
 float lastTime = 0.0f;
 
-void RenderDepthPass(const std::vector<sponza::Mesh> &meshes)
+void RenderDepthPass(const std::vector<const sponza::Mesh *> &meshes)
 {
-	for (const sponza::Mesh &mesh : meshes)
+	for (const sponza::Mesh *mesh : meshes)
 	{
-		sponza::DrawMesh(mesh);
+		sponza::DrawMesh(*mesh);
 	}
 }
 
 void RenderScene(
-	const std::vector<sponza::Mesh> &meshes,
+	const std::vector<const sponza::Mesh *> &meshes,
 	const sponza::PointLight &light,
 	int depthTexture,
 	float farPlane
 )
 {
-
 	uint32_t currentShader = 0;
 	sponza::Material *currentMaterial = nullptr;
 
-	for (const sponza::Mesh &mesh : meshes)
+	for (const sponza::Mesh *mesh : meshes)
 	{
 		sponza::Render(
-			mesh,
+			*mesh,
 			light,
 			depthTexture,
 			farPlane,
-			mesh.material.get() != currentMaterial,
-			mesh.shader.ID != currentShader
+			mesh->material.get() != currentMaterial,
+			mesh->shader.ID != currentShader
 		);
 
-		currentMaterial = mesh.material.get();
-		currentShader = mesh.shader.ID;
+		currentMaterial = mesh->material.get();
+		currentShader = mesh->shader.ID;
 	}
 }
 
@@ -144,19 +144,22 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 		sponza::InitialiseMesh(mesh, shader, normalMapShader);
 	}
 
+	const std::vector<glm::vec4> boundingSpheres = sponza::CalculateSpheres(meshes);
+
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_BLEND);
+	glBlendEquation(GL_FUNC_ADD);
 	glBlendFunc(GL_ONE, GL_ONE);
 
 	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
 
-	camera.updateProjectionMatrix(60.0f, aspect, 0.1f, 10000.0f);
+	camera.updateProjectionMatrix(45.0f, aspect, 1.0f, 10000.0f);
 
-	sponza::PointLight lights[2];
+	sponza::PointLight lights[4];
 	sponza::InitialiseLights(lights);
 
 	sponza::Uniforms uniforms(shader.ID, normalMapShader.ID, camera);
@@ -168,6 +171,10 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 	shadowMap.load(resource);
 	shadowMap.updateProjectionMatrix(camera.getNearPlane(), camera.getFarPlane());
 
+	glm::vec4 planes[6];
+	std::vector<const sponza::Mesh *> visibleMeshes;
+	visibleMeshes.resize(meshes.size());
+
 	while (!glfwWindowShouldClose(window))
 	{
 		const auto currentTime = static_cast<float>(glfwGetTime());
@@ -176,26 +183,28 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 
 		uniforms.update(camera);
 
+		camera.extractFrustum(planes);
+		sponza::Cull(planes, boundingSpheres, meshes, visibleMeshes);
+
 		bool firstPass = true;
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		for (const sponza::PointLight &light : lights)
 		{
+			glCullFace(GL_FRONT);
 			shadowMap.bindForWrite(light, camera.getFarPlane());
 
-			RenderDepthPass(meshes);
+			RenderDepthPass(visibleMeshes);
+
+			glCullFace(GL_BACK);
 
 			// Restore the HDR Buffer as the destination
 			hdr.bindForWrite(mode->width, mode->height, firstPass);
 
-			RenderScene(meshes, light, shadowMap.getTextureId(), camera.getFarPlane());
+			glClear(GL_DEPTH_BUFFER_BIT);
+			RenderScene(visibleMeshes, light, shadowMap.getTextureId(), camera.getFarPlane());
 
 			firstPass = false;
-		}
-
-		for (int i = 0; i < 5; ++i)
-		{
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
 		skybox.render(camera, camera.getProjectionMatrix());

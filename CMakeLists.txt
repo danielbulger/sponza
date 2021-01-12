@@ -22,7 +22,16 @@ add_executable(${TARGET_NAME}
 	src/resource.h
 	src/resource.cpp
 	src/light.h
-	src/hdr.h src/hdr.cpp src/uniforms.h src/uniforms.cpp src/light.cpp src/shadow_map.h src/shadow_map.cpp)
+	src/hdr.h
+	src/hdr.cpp
+	src/uniforms.h
+	src/uniforms.cpp
+	src/light.cpp
+	src/shadow_map.h
+	src/shadow_map.cpp
+	src/bounding_volume.h
+	src/bounding_volume.cpp
+)
 
 target_include_directories(${TARGET_NAME} PRIVATE
 	src/

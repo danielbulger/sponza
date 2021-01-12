@@ -29,17 +29,21 @@ namespace sponza
 		[[nodiscard]]
 		const glm::mat4 &getProjectionMatrix() const;
 
+		void extractFrustum(glm::vec4 planes[6]);
+
 		void move(CameraMovement movement, float deltaTime);
 
 		void rotate(float x, float y);
 
 		void print() const;
 
+		[[nodiscard]]
 		inline float getNearPlane() const
 		{
 			return m_nearPlane;
 		}
 
+		[[nodiscard]]
 		inline float getFarPlane() const
 		{
 			return m_farPlane;

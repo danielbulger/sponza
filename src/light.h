@@ -14,7 +14,7 @@ namespace sponza
 		glm::vec4 coef;
 	};
 
-	void InitialiseLights(sponza::PointLight lights[2]);
+	void InitialiseLights(sponza::PointLight lights[4]);
 }
 
 #endif
