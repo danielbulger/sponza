@@ -149,15 +149,21 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glViewport(0, 0, mode->width, mode->height);
 
+	glEnable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+
+	glEnable(GL_LINE_SMOOTH);
+	glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+
+	glEnable(GL_POLYGON_SMOOTH);
+	glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
-	glEnable(GL_BLEND);
-	glBlendEquation(GL_FUNC_ADD);
-	glBlendFunc(GL_ONE, GL_ONE);
 
 	const float aspect = static_cast<float>(mode->width) / static_cast<float>(mode->height);
 
-	camera.updateProjectionMatrix(45.0f, aspect, 1.0f, 10000.0f);
+	camera.updateProjectionMatrix(45.0f, aspect, 1.0f, 5000.0f);
 
 	sponza::PointLight lights[4];
 	sponza::InitialiseLights(lights);
@@ -167,13 +173,13 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 	sponza::HDR hdr(mode->width, mode->height);
 	hdr.load(resource);
 
-	sponza::ShadowMap shadowMap(1024, 1024);
+	sponza::ShadowMap shadowMap(2048, 2048);
 	shadowMap.load(resource);
 	shadowMap.updateProjectionMatrix(camera.getNearPlane(), camera.getFarPlane());
 
 	glm::vec4 planes[6];
 	std::vector<const sponza::Mesh *> visibleMeshes;
-	visibleMeshes.resize(meshes.size());
+	visibleMeshes.reserve(meshes.size());
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -193,14 +199,22 @@ void RenderLoop(GLFWwindow *window, const GLFWvidmode *mode, const char *file)
 		{
 			glCullFace(GL_FRONT);
 			shadowMap.bindForWrite(light, camera.getFarPlane());
-
 			RenderDepthPass(visibleMeshes);
-
-			glCullFace(GL_BACK);
 
 			// Restore the HDR Buffer as the destination
 			hdr.bindForWrite(mode->width, mode->height, firstPass);
 
+			if(firstPass)
+			{
+				glDisable(GL_BLEND);
+			}
+			else
+			{
+				glEnable(GL_BLEND);
+				glBlendFunc(GL_ONE, GL_ONE);
+			}
+
+			glCullFace(GL_BACK);
 			glClear(GL_DEPTH_BUFFER_BIT);
 			RenderScene(visibleMeshes, light, shadowMap.getTextureId(), camera.getFarPlane());
 

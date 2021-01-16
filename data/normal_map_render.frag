@@ -38,7 +38,7 @@ float calculateShadow()
 
 	float currentDepth = length(v);
 
-	return currentDepth - 0.05 > depth ? 1.0 : 0.0;
+	return currentDepth - 0.0005 > depth ? 0.0 : 1.0;
 
 }
 
@@ -60,7 +60,12 @@ void main()
 	vec3 reflectedLightDirection = reflect(-lightDirection, normal);
 	float specularFactor = max(dot(lightDirection, viewDirection), 0.0);
 
-	vec3 ka = mix(lightAmbient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
+	vec3 ka = lightAmbient.xyz * vec3(texture(ambientTexture, texCoords));
+
+	if(ambient != vec3(0.0, 0.0, 0.0)) {
+		ka *= ambient;
+	}
+
 	vec3 kd = lightDiffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * dotN;
 	vec3 ks = lightSpecular.xyz * specular;
 
@@ -70,5 +75,5 @@ void main()
 
 	ks *= pow(specularFactor, specularExponent);
 
-	fragColour =  vec4(attenuation * (ka + (1.0 - calculateShadow()) * (kd + ks)), 1.0f);
+	fragColour = vec4(attenuation * (ka + calculateShadow() * (kd + ks)), 1.0);
 }

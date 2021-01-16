@@ -63,8 +63,8 @@ namespace sponza
 	{
 		m_shader = Shader(
 			resource.getFilePath("/shadow.vert").c_str(),
-			resource.getFilePath("/shadow.frag").c_str(),
-			resource.getFilePath("/shadow.geom").c_str()
+			resource.getFilePath("/shadow.frag").c_str()
+//			resource.getFilePath("/shadow.geom").c_str()
 		);
 	}
 

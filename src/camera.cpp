@@ -101,40 +101,16 @@ namespace sponza
 	{
 		const glm::mat4 matrix = glm::transpose(m_projectionMatrix * getViewMatrix());
 
-		planes[0].x = matrix[3][0] + matrix[0][0];
-		planes[0].y = matrix[3][1] + matrix[0][1];
-		planes[0].z = matrix[3][2] + matrix[0][2];
-		planes[0].w = matrix[3][3] + matrix[0][3];
-		planes[0] = NormalisePlane(planes[0]);
-
-		planes[1].x = matrix[3][0] - matrix[0][0];
-		planes[1].y = matrix[3][1] - matrix[0][1];
-		planes[1].z = matrix[3][2] - matrix[0][2];
-		planes[1].w = matrix[3][3] - matrix[0][3];
-		planes[1] = NormalisePlane(planes[1]);
-
-		planes[2].x = matrix[3][0] - matrix[1][0];
-		planes[2].y = matrix[3][1] - matrix[1][1];
-		planes[2].z = matrix[3][2] - matrix[1][2];
-		planes[2].w = matrix[3][3] - matrix[1][3];
-		planes[2] = NormalisePlane(planes[2]);
-
-		planes[3].x = matrix[3][0] + matrix[1][0];
-		planes[3].y = matrix[3][1] + matrix[1][1];
-		planes[3].z = matrix[3][2] + matrix[1][2];
-		planes[3].w = matrix[3][3] + matrix[1][3];
-		planes[3] = NormalisePlane(planes[3]);
-
-		planes[4].x = matrix[3][0] + matrix[2][0];
-		planes[4].y = matrix[3][1] + matrix[2][1];
-		planes[4].z = matrix[3][2] + matrix[2][2];
-		planes[4].w = matrix[3][3] + matrix[2][3];
-		planes[4] = NormalisePlane(planes[4]);
-
-		planes[5].x = matrix[3][0] - matrix[2][0];
-		planes[5].y = matrix[3][1] - matrix[2][1];
-		planes[5].z = matrix[3][2] - matrix[2][2];
-		planes[5].w = matrix[3][3] - matrix[2][3];
-		planes[5] = NormalisePlane(planes[5]);
+		float sign = 1.0;
+		for(int i = 0; i < 6; ++i)
+		{
+			const int idx = (i & ~1) >> 1;
+			planes[i].x = matrix[3][0] + (sign * matrix[idx][0]);
+			planes[i].y = matrix[3][1] + (sign * matrix[idx][1]);
+			planes[i].z = matrix[3][2] + (sign * matrix[idx][2]);
+			planes[i].w = matrix[3][3] + (sign * matrix[idx][3]);
+			planes[i] = NormalisePlane(planes[i]);
+			sign *= -1.0f;
+		}
 	}
 }

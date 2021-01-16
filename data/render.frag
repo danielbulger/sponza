@@ -12,7 +12,7 @@ uniform sampler2D specularTexture;
 uniform sampler2D alphaTexture;
 uniform sampler2D normalTexture;
 
-uniform bool hasAplha;
+uniform bool hasAlpha;
 uniform bool hasSpecular;
 
 uniform vec3 ambient;
@@ -36,12 +36,12 @@ float calculateShadow()
 
 	float currentDepth = length(v);
 
-	return currentDepth - 0.05 > depth ? 1.0 : 0.0;
+	return currentDepth - 0.0005 > depth ? 0.0 : 1.0;
 }
 
 void main()
 {
-	if (hasAplha && texture(alphaTexture, texCoords).r == 0) {
+	if (hasAlpha && texture(alphaTexture, texCoords).r == 0) {
 		discard;
 	}
 
@@ -52,7 +52,12 @@ void main()
 
 	float attenuation = 5000.0 / (lightCoef.x + lightCoef.y * distance + lightCoef.z * (distance * distance));
 
-	vec3 ka = mix(lightAmbient.xyz, ambient, 0.5) * vec3(texture(ambientTexture, texCoords));
+	vec3 ka = lightAmbient.xyz * vec3(texture(ambientTexture, texCoords));
+
+	if(ambient != vec3(0.0, 0.0, 0.0)) {
+		ka *= ambient;
+	}
+
 	vec3 kd = lightDiffuse.xyz * diffuse * vec3(texture(diffuseTexture, texCoords)) * max(dot(s, normal), 0.0);
 	vec3 ks = lightSpecular.xyz * specular;
 
@@ -62,5 +67,5 @@ void main()
 
 	ks *= pow(max(dot(h, normal), 0.0), specularExponent);
 
-	fragColour = vec4(attenuation *  (ka + (1.0 - calculateShadow()) *(kd + ks)), 1.0f);
+	fragColour = vec4(attenuation *  (ka + calculateShadow() * (kd + ks)), 1.0f);
 }

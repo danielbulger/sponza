@@ -54,7 +54,7 @@ namespace sponza
 		}
 	}
 
-	void HDR::bindForWrite(uint32_t width, uint32_t height, bool firstPass)
+	void HDR::bindForWrite(uint32_t width, uint32_t height, bool firstPass) const
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_frameBuffer);
 		glViewport(0, 0, width, height);

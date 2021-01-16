@@ -8,11 +8,12 @@ uniform sampler2D hdrBuffer;
 
 const float gamma = 2.2;
 const float exposure = 1.0;
+const vec3 coef = vec3(1.0);
 
 void main() {
 	vec3 colour = texture(hdrBuffer, texCoords).rgb;
 
-	colour = vec3(1.0) - exp(-colour * exposure);
+	colour = coef - exp(-colour * exposure);
 
-	fragColour = vec4(colour, 1.0); //vec4(pow(colour, vec3(1.0 / gamma)), 1.0);
+	fragColour = vec4(pow(colour, vec3(1.0 / gamma)), 1.0);
 }

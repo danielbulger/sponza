@@ -80,6 +80,7 @@ namespace sponza
 			{
 				visibleMeshes.push_back(&meshes[i]);
 			}
+
 		}
 	}
 }
